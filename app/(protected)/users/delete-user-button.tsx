@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
+import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog"
 import { deleteUser } from "@/lib/actions/users"
 
 export function DeleteUserButton({
@@ -18,41 +18,34 @@ export function DeleteUserButton({
   redirectTo?: string
 }) {
   const router = useRouter()
-  const [isDeleting, setIsDeleting] = useState(false)
-
-  async function handleDelete() {
-    if (!window.confirm(`Delete ${userName}? This cannot be undone.`)) {
-      return
-    }
-
-    setIsDeleting(true)
-    try {
-      const result = await deleteUser(userId)
-
-      if (!result.ok) {
-        window.alert(result.message ?? "Failed to delete user")
-        return
-      }
-
-      if (redirectTo) {
-        router.push(redirectTo)
-      } else {
-        router.refresh()
-      }
-    } finally {
-      setIsDeleting(false)
-    }
-  }
 
   return (
-    <Button
-      type="button"
-      variant="destructive"
-      size="sm"
-      disabled={disabled || isDeleting}
-      onClick={handleDelete}
-    >
-      {isDeleting ? "Deleting..." : "Delete"}
-    </Button>
+    <ConfirmDeleteDialog
+      trigger={
+        <Button
+          type="button"
+          variant="destructive"
+          size="sm"
+          disabled={disabled}
+        >
+          Delete
+        </Button>
+      }
+      title="Delete user"
+      description={`Delete ${userName}? This cannot be undone.`}
+      onConfirm={async () => {
+        const result = await deleteUser(userId)
+
+        if (result.ok) {
+          if (redirectTo) {
+            router.push(redirectTo)
+          } else {
+            router.refresh()
+          }
+        }
+
+        return result
+      }}
+    />
   )
 }
