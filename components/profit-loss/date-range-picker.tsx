@@ -27,7 +27,16 @@ export function DateRangePicker({
     to: toDate ? new Date(toDate + "T00:00:00") : undefined,
   })
 
-  function handleSelect(newRange: DateRange | undefined) {
+  function handleSelect(newRange: DateRange | undefined, triggerDate: Date) {
+    // If the previous selection was already a complete range, react-day-picker
+    // pairs this click with the stale endpoint and completes a new range
+    // immediately. Treat it as the start of a fresh selection instead, so the
+    // user gets to pick an end date rather than having one assumed for them.
+    if (range?.from && range?.to) {
+      setRange({ from: triggerDate, to: undefined })
+      return
+    }
+
     setRange(newRange)
     if (newRange?.from && newRange?.to) {
       const params = new URLSearchParams({
@@ -57,7 +66,14 @@ export function DateRangePicker({
         {label}
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="end">
-        <Calendar mode="range" selected={range} onSelect={handleSelect} numberOfMonths={2} />
+        <Calendar
+          mode="range"
+          selected={range}
+          onSelect={handleSelect}
+          numberOfMonths={2}
+          captionLayout="dropdown"
+          defaultMonth={range?.from}
+        />
       </PopoverContent>
     </Popover>
   )

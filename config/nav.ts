@@ -19,6 +19,8 @@ export interface NavItem {
   // Default-open state for collapsible items; active highlighting is route-derived.
   isActive?: boolean
   items?: NavSubItem[]
+  // Hidden from staff — the backend also enforces this, this is UX only.
+  adminOnly?: boolean
 }
 
 export interface NavGroup {
@@ -44,6 +46,7 @@ export const navGroups: NavGroup[] = [
         title: "Settings",
         url: "settings",
         icon: SettingsIcon,
+        adminOnly: true,
       },
     ],
   },
