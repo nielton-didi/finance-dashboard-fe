@@ -57,24 +57,26 @@ export default async function ProfitLossPage({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{data?.companyName ?? "Profit & Loss"}</CardTitle>
-        <CardDescription>
-          Profit &amp; Loss statement, {format(new Date(fromDate + "T00:00:00"), "MMM d, yyyy")} –{" "}
-          {format(new Date(toDate + "T00:00:00"), "MMM d, yyyy")}
-        </CardDescription>
-        <CardAction>
-          <DateRangePicker fromDate={fromDate} toDate={toDate} />
-        </CardAction>
-      </CardHeader>
-      <CardContent>
-        {error ? (
-          <AutocountErrorMessage error={error} />
-        ) : (
-          data && <ProfitLossTable data={data} />
-        )}
-      </CardContent>
-    </Card>
+    <div className="mx-auto w-full max-w-6xl">
+      <Card>
+        <CardHeader>
+          <CardTitle>{data?.companyName ?? "Profit & Loss"}</CardTitle>
+          <CardDescription>
+            Profit &amp; Loss statement, {format(new Date(fromDate + "T00:00:00"), "MMM d, yyyy")} –{" "}
+            {format(new Date(toDate + "T00:00:00"), "MMM d, yyyy")}
+          </CardDescription>
+          <CardAction>
+            <DateRangePicker fromDate={fromDate} toDate={toDate} />
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          {error ? (
+            <AutocountErrorMessage error={error} />
+          ) : (
+            data && <ProfitLossTable data={data} />
+          )}
+        </CardContent>
+      </Card>
+    </div>
   )
 }

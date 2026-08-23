@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input"
 import { updateOrganization } from "@/lib/actions/organizations"
 import type { Organization } from "@/lib/organizations"
 
+import { DeleteOrganizationButton } from "./delete-organization-button"
+
 export function OrganizationForm({
   orgId,
   organization,
@@ -92,13 +94,16 @@ export function OrganizationForm({
             </Field>
           </FieldGroup>
         </CardContent>
-        <CardFooter className="justify-end gap-2">
-          {saved && (
-            <span className="text-sm text-muted-foreground">Saved</span>
-          )}
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : "Save"}
-          </Button>
+        <CardFooter className="justify-between gap-2">
+          <DeleteOrganizationButton orgId={orgId} orgName={organization.name} />
+          <div className="flex items-center gap-2">
+            {saved && (
+              <span className="text-sm text-muted-foreground">Saved</span>
+            )}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : "Save"}
+            </Button>
+          </div>
         </CardFooter>
       </form>
     </Card>
