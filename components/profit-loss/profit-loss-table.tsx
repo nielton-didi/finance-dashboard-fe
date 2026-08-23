@@ -7,7 +7,12 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
-import type { ProfitLossItem, ProfitLossResponse, ProfitLossSection } from "@/lib/profit-loss-mock"
+import type {
+  ProfitLossItem,
+  ProfitLossResponse,
+  ProfitLossSection,
+  ProfitLossSummaryRow,
+} from "@/lib/profit-loss"
 
 const COL_COUNT = 4
 
@@ -18,12 +23,11 @@ function fmt(n: number): string {
   }).format(n)
 }
 
-function fmtPct(value: number, base: number): string {
-  if (base === 0) return "-"
+function fmtPct(percent: number): string {
   return new Intl.NumberFormat("en-MY", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format((value / base) * 100)
+  }).format(percent)
 }
 
 function SectionHeaderRow({ title }: { title: string }) {
@@ -39,7 +43,7 @@ function SectionHeaderRow({ title }: { title: string }) {
   )
 }
 
-function ItemRow({ item, baseTotal }: { item: ProfitLossItem; baseTotal: number }) {
+function ItemRow({ item }: { item: ProfitLossItem }) {
   return (
     <TableRow className="border-0 hover:bg-muted/40">
       <TableCell className="w-20 py-1.5 font-mono text-xs text-muted-foreground/70">
@@ -48,7 +52,7 @@ function ItemRow({ item, baseTotal }: { item: ProfitLossItem; baseTotal: number 
       <TableCell className="py-1.5 whitespace-normal">{item.accountName}</TableCell>
       <TableCell className="w-32 py-1.5 text-right tabular-nums">{fmt(item.amount)}</TableCell>
       <TableCell className="w-16 py-1.5 text-right tabular-nums text-muted-foreground">
-        {fmtPct(item.amount, baseTotal)}
+        {fmtPct(item.percent)}
       </TableCell>
     </TableRow>
   )
@@ -57,11 +61,9 @@ function ItemRow({ item, baseTotal }: { item: ProfitLossItem; baseTotal: number 
 function SectionTotalRow({
   label,
   section,
-  baseTotal,
 }: {
   label: string
   section: ProfitLossSection
-  baseTotal: number
 }) {
   return (
     <TableRow className="border-0 hover:bg-transparent">
@@ -71,7 +73,7 @@ function SectionTotalRow({
         {fmt(section.total)}
       </TableCell>
       <TableCell className="border-t border-border pt-1.5 pb-2 text-right font-semibold tabular-nums text-muted-foreground">
-        {fmtPct(section.total, baseTotal)}
+        {fmtPct(section.percent)}
       </TableCell>
     </TableRow>
   )
@@ -79,13 +81,11 @@ function SectionTotalRow({
 
 function SummaryRow({
   label,
-  value,
-  baseTotal,
+  row,
   emphasis,
 }: {
   label: string
-  value: number
-  baseTotal: number
+  row: ProfitLossSummaryRow
   emphasis: "subtle" | "strong"
 }) {
   return (
@@ -110,10 +110,10 @@ function SummaryRow({
           emphasis === "strong" && "text-base"
         )}
       >
-        {fmt(value)}
+        {fmt(row.amount)}
       </TableCell>
       <TableCell className="border-t-2 border-foreground/25 py-2.5 text-right font-bold tabular-nums text-muted-foreground">
-        {fmtPct(value, baseTotal)}
+        {fmtPct(row.percent)}
       </TableCell>
     </TableRow>
   )
@@ -138,7 +138,6 @@ export function ProfitLossTable({ data }: { data: ProfitLossResponse }) {
     expenses,
     netProfit,
   } = data
-  const baseTotal = sales.total
 
   return (
     <Table>
@@ -153,79 +152,62 @@ export function ProfitLossTable({ data }: { data: ProfitLossResponse }) {
       <TableBody>
         <SectionHeaderRow title={sales.title} />
         {sales.items.map((item) => (
-          <ItemRow key={item.accountCode} item={item} baseTotal={baseTotal} />
+          <ItemRow key={item.accountCode} item={item} />
         ))}
-        <SectionTotalRow label={`Total ${sales.title}`} section={sales} baseTotal={baseTotal} />
+        <SectionTotalRow label={`Total ${sales.title}`} section={sales} />
 
         <SpacerRow />
 
         <SectionHeaderRow title={salesAdjustments.title} />
         {salesAdjustments.items.map((item) => (
-          <ItemRow key={item.accountCode} item={item} baseTotal={baseTotal} />
+          <ItemRow key={item.accountCode} item={item} />
         ))}
         <SectionTotalRow
           label={`Total ${salesAdjustments.title}`}
           section={salesAdjustments}
-          baseTotal={baseTotal}
         />
 
         <SpacerRow />
 
-        <SummaryRow label="Net Sales" value={netSales} baseTotal={baseTotal} emphasis="subtle" />
+        <SummaryRow label={netSales.label} row={netSales} emphasis="subtle" />
 
         <SpacerRow />
 
         <SectionHeaderRow title={costOfGoodsSold.title} />
         {costOfGoodsSold.items.map((item) => (
-          <ItemRow key={item.accountCode} item={item} baseTotal={baseTotal} />
+          <ItemRow key={item.accountCode} item={item} />
         ))}
         <SectionTotalRow
           label={`Total ${costOfGoodsSold.title}`}
           section={costOfGoodsSold}
-          baseTotal={baseTotal}
         />
 
         <SpacerRow />
 
-        <SummaryRow
-          label="Gross Profit / (Loss)"
-          value={grossProfit}
-          baseTotal={baseTotal}
-          emphasis="subtle"
-        />
+        <SummaryRow label={grossProfit.label} row={grossProfit} emphasis="subtle" />
 
         <SpacerRow />
 
         <SectionHeaderRow title={otherIncomes.title} />
         {otherIncomes.items.map((item) => (
-          <ItemRow key={item.accountCode} item={item} baseTotal={baseTotal} />
+          <ItemRow key={item.accountCode} item={item} />
         ))}
         <SectionTotalRow
           label={`Total ${otherIncomes.title}`}
           section={otherIncomes}
-          baseTotal={baseTotal}
         />
 
         <SpacerRow />
 
         <SectionHeaderRow title={expenses.title} />
         {expenses.items.map((item) => (
-          <ItemRow key={item.accountCode} item={item} baseTotal={baseTotal} />
+          <ItemRow key={item.accountCode} item={item} />
         ))}
-        <SectionTotalRow
-          label={`Total ${expenses.title}`}
-          section={expenses}
-          baseTotal={baseTotal}
-        />
+        <SectionTotalRow label={`Total ${expenses.title}`} section={expenses} />
 
         <SpacerRow />
 
-        <SummaryRow
-          label="Net Profit / (Loss)"
-          value={netProfit}
-          baseTotal={baseTotal}
-          emphasis="strong"
-        />
+        <SummaryRow label={netProfit.label} row={netProfit} emphasis="strong" />
       </TableBody>
     </Table>
   )

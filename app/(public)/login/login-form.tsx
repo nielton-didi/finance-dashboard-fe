@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { GalleryVerticalEnd } from "lucide-react"
 import { useRouter } from "next/navigation"
 
@@ -18,12 +19,37 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const router = useRouter()
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  function handleLogin(event: React.FormEvent<HTMLFormElement>) {
+  async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setError(null)
+    setIsSubmitting(true)
 
-    // TODO: replace with a real API call to the backend once it's available
-    router.push("/")
+    const formData = new FormData(event.currentTarget)
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.get("email"),
+          password: formData.get("password"),
+        }),
+      })
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        setError(body?.message ?? "Invalid email or password")
+        return
+      }
+
+      router.push("/")
+      router.refresh()
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -45,10 +71,16 @@ export function LoginForm({
               Login to your account to continue
             </FieldDescription>
           </div>
+          {error && (
+            <p className="text-sm text-destructive" role="alert">
+              {error}
+            </p>
+          )}
           <Field>
             <FieldLabel htmlFor="email">Email</FieldLabel>
             <Input
               id="email"
+              name="email"
               type="email"
               placeholder="m@example.com"
               required
@@ -56,10 +88,12 @@ export function LoginForm({
           </Field>
           <Field>
             <FieldLabel htmlFor="password">Password</FieldLabel>
-            <Input id="password" type="password" required />
+            <Input id="password" name="password" type="password" required />
           </Field>
           <Field>
-            <Button type="submit">Login</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Signing in…" : "Login"}
+            </Button>
           </Field>
         </FieldGroup>
       </form>
