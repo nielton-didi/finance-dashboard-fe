@@ -43,12 +43,14 @@ export function AppShell({
   user,
   role,
   organizations,
+  dbConfigured,
   children,
 }: {
   defaultOpen: boolean
   user: { name: string; email: string; avatar: string }
   role: "admin" | "staff"
   organizations: Organization[]
+  dbConfigured?: Record<number, boolean>
   children: React.ReactNode
 }) {
   const { orgId } = useParams<{ orgId?: string }>()
@@ -103,7 +105,12 @@ export function AppShell({
         <header className="sticky top-0 z-10 grid h-16 shrink-0 grid-cols-[1fr_auto_1fr] items-center border-b bg-background transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
-            {inOrg && <OrgSwitcher organizations={organizations} />}
+            {inOrg && (
+              <OrgSwitcher
+                organizations={organizations}
+                dbConfigured={dbConfigured}
+              />
+            )}
           </div>
           <PageBreadcrumb />
           <div className="flex justify-end px-4">
