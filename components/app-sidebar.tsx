@@ -13,19 +13,24 @@ import {
 } from "@/components/ui/sidebar"
 import { navGroups } from "@/config/nav"
 
-// TODO: replace with the authenticated user once the backend is available
-const user = {
-  name: "Jane Doe",
-  email: "jane.doe@example.com",
-  avatar: "",
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  user: { name: string; email: string; avatar: string }
+  role: "admin" | "staff"
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ user, role, ...props }: AppSidebarProps) {
+  const visibleGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !item.adminOnly || role === "admin"),
+    }))
+    .filter((group) => group.items.length > 0)
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarBrand />
       <SidebarContent>
-        {navGroups.map((group) => (
+        {visibleGroups.map((group) => (
           <NavGroup key={group.label} {...group} />
         ))}
       </SidebarContent>

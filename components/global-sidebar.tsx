@@ -19,25 +19,25 @@ import {
 } from "@/components/ui/sidebar"
 
 const items = [
-  { title: "Organizations", url: "/", icon: Building2Icon },
-  { title: "Users", url: "/users", icon: UsersIcon },
-  { title: "Account", url: "/account", icon: ShieldUserIcon },
+  { title: "Organizations", url: "/", icon: Building2Icon, adminOnly: false },
+  { title: "Users", url: "/users", icon: UsersIcon, adminOnly: true },
+  { title: "Account", url: "/account", icon: ShieldUserIcon, adminOnly: false },
 ]
-
-// TODO: replace with the authenticated user once the backend is available
-const user = {
-  name: "Jane Doe",
-  email: "jane.doe@example.com",
-  avatar: "",
-}
 
 function isItemActive(pathname: string, url: string) {
   if (url === "/") return pathname === "/"
   return pathname === url || pathname.startsWith(`${url}/`)
 }
 
-export function GlobalSidebar() {
+export function GlobalSidebar({
+  user,
+  role,
+}: {
+  user: { name: string; email: string; avatar: string }
+  role: "admin" | "staff"
+}) {
   const pathname = usePathname()
+  const visibleItems = items.filter((item) => !item.adminOnly || role === "admin")
 
   return (
     <Sidebar collapsible="icon">
@@ -46,7 +46,7 @@ export function GlobalSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Platform</SidebarGroupLabel>
           <SidebarMenu>
-            {items.map((item) => (
+            {visibleItems.map((item) => (
               <SidebarMenuItem key={item.url}>
                 <SidebarMenuButton
                   tooltip={item.title}
