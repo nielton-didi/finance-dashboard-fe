@@ -55,6 +55,20 @@ export async function updateUser(
   return result
 }
 
+export async function deleteUser(userId: number): Promise<ActionResult<void>> {
+  const result = await runAction(() =>
+    apiFetch<void>(`/users/${userId}`, {
+      method: "DELETE",
+    })
+  )
+
+  if (result.ok) {
+    revalidatePath("/users")
+  }
+
+  return result
+}
+
 export async function grantOrganizationAccess(
   userId: number,
   organizationId: number

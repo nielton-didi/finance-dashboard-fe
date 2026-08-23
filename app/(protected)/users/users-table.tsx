@@ -1,3 +1,5 @@
+import Link from "next/link"
+
 import {
   Card,
   CardAction,
@@ -14,18 +16,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import type { Organization } from "@/lib/organizations"
+import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import type { User } from "@/lib/users"
 
-import { AccessControls } from "./access-controls"
-import { AddUserSheet } from "./add-user-sheet"
+import { DeleteUserButton } from "./delete-user-button"
 
 export function UsersTable({
   users,
-  organizations,
+  currentUserId,
 }: {
   users: User[]
-  organizations: Organization[]
+  currentUserId: number
 }) {
   return (
     <Card>
@@ -35,7 +37,9 @@ export function UsersTable({
           People across all organizations and which ones they can access.
         </CardDescription>
         <CardAction>
-          <AddUserSheet />
+          <Link href="/users/new" className={cn(buttonVariants())}>
+            Add User
+          </Link>
         </CardAction>
       </CardHeader>
       <CardContent>
@@ -45,8 +49,10 @@ export function UsersTable({
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead>Organization Access</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="w-0">
+                <span className="sr-only">Actions</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -57,20 +63,25 @@ export function UsersTable({
                   {user.email}
                 </TableCell>
                 <TableCell className="capitalize">{user.role}</TableCell>
-                <TableCell>
-                  {user.role === "admin" ? (
-                    <span className="text-xs text-muted-foreground">
-                      All organizations
-                    </span>
-                  ) : (
-                    <AccessControls
-                      userId={user.id}
-                      organizations={organizations}
-                    />
-                  )}
-                </TableCell>
                 <TableCell className="text-muted-foreground capitalize">
                   {user.status}
+                </TableCell>
+                <TableCell>
+                  <div className="flex justify-end gap-1.5">
+                    <Link
+                      href={`/users/${user.id}`}
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "sm" })
+                      )}
+                    >
+                      Edit
+                    </Link>
+                    <DeleteUserButton
+                      userId={user.id}
+                      userName={user.fullName}
+                      disabled={user.id === currentUserId}
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

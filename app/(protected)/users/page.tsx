@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation"
 
 import { getCurrentUser } from "@/lib/auth"
-import { getOrganizations } from "@/lib/organizations"
 import { getUsers } from "@/lib/users"
 
 import { UsersTable } from "./users-table"
@@ -17,10 +16,7 @@ export default async function UsersPage() {
     redirect("/")
   }
 
-  const [users, organizations] = await Promise.all([
-    getUsers(),
-    getOrganizations(),
-  ])
+  const users = await getUsers()
 
-  return <UsersTable users={users} organizations={organizations} />
+  return <UsersTable users={users} currentUserId={user.sub} />
 }

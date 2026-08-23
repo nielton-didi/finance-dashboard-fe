@@ -6,10 +6,12 @@ import {
   Building2Icon,
   DatabaseCheckIcon,
   DatabaseXIcon,
+  PlusIcon,
   SearchIcon,
   SettingsIcon,
 } from "lucide-react"
 
+import { buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
@@ -18,8 +20,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import type { Organization } from "@/lib/organizations"
-
-import { AddOrganizationSheet } from "./add-organization-sheet"
+import { cn } from "@/lib/utils"
 
 export function OrganizationsList({
   organizations,
@@ -49,9 +50,14 @@ export function OrganizationsList({
             className="pl-8"
           />
         </div>
-        <AddOrganizationSheet />
+        {isAdmin && (
+          <Link href="/organizations/new" className={cn(buttonVariants())}>
+            <PlusIcon />
+            New Organization
+          </Link>
+        )}
       </div>
-      <div className="flex flex-wrap gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {filteredOrgs.map((org) => {
           const configured = dbConfigured?.[org.id] ?? false
           const showMetaRow = Boolean(org.plan) || isAdmin
@@ -59,7 +65,7 @@ export function OrganizationsList({
           return (
             <Card
               key={org.id}
-              className="relative w-full gap-3 py-4 ring-1 ring-foreground/10 transition-colors hover:ring-foreground/30 sm:w-72"
+              className="relative gap-3 py-4 ring-1 ring-foreground/10 transition-colors hover:ring-foreground/30"
             >
               <Link
                 href={`/organizations/${org.id}/dashboard`}
@@ -71,12 +77,10 @@ export function OrganizationsList({
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-                      <Building2Icon className="size-4" />
+                      <Building2Icon className="size-5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">
-                        {org.name}
-                      </p>
+                      <p className="truncate text-sm font-medium">{org.name}</p>
                       <p className="truncate text-xs text-muted-foreground">
                         {org.registrationNumber ?? `Organization #${org.id}`}
                       </p>
@@ -90,7 +94,7 @@ export function OrganizationsList({
                           <span
                             className={`pointer-events-auto flex size-10 shrink-0 items-center justify-center rounded-full border-2 bg-transparent ${
                               configured
-                                ? "border-emerald-500/40 text-emerald-500"
+                                ? "border-emerald-500 text-emerald-500"
                                 : "border-muted-foreground/30 text-muted-foreground"
                             }`}
                           >

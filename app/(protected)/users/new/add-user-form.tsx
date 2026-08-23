@@ -1,26 +1,25 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { UserPlusIcon } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
 import { createUser } from "@/lib/actions/users"
+import { cn } from "@/lib/utils"
 
-export function AddUserSheet() {
+export function AddUserForm() {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -45,38 +44,24 @@ export function AddUserSheet() {
         return
       }
 
-      setOpen(false)
-      router.refresh()
+      router.push(result.data ? `/users/${result.data.id}` : "/users")
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <Sheet
-      open={open}
-      onOpenChange={(nextOpen) => {
-        setOpen(nextOpen)
-        if (!nextOpen) setError(null)
-      }}
-    >
-      <SheetTrigger render={<Button />}>
-        <UserPlusIcon />
-        Add User
-      </SheetTrigger>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>Add User</SheetTitle>
-          <SheetDescription>
-            This creates the account directly with the password you set below
-            — there is no invite-email flow yet, so share the credentials
-            with them separately.
-          </SheetDescription>
-        </SheetHeader>
-        <form
-          className="flex flex-1 flex-col gap-4 overflow-y-auto px-4"
-          onSubmit={handleSubmit}
-        >
+    <Card>
+      <CardHeader>
+        <CardTitle>Add User</CardTitle>
+        <CardDescription>
+          This creates the account directly with the password you set below —
+          there is no invite-email flow yet, so share the credentials with
+          them separately.
+        </CardDescription>
+      </CardHeader>
+      <form className="contents" onSubmit={handleSubmit}>
+        <CardContent>
           <FieldGroup>
             {error && (
               <p className="text-sm text-destructive" role="alert">
@@ -125,13 +110,19 @@ export function AddUserSheet() {
               </select>
             </Field>
           </FieldGroup>
-          <SheetFooter className="mt-auto px-0">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Adding..." : "Add User"}
-            </Button>
-          </SheetFooter>
-        </form>
-      </SheetContent>
-    </Sheet>
+        </CardContent>
+        <CardFooter className="justify-end gap-2">
+          <Link
+            href="/users"
+            className={cn(buttonVariants({ variant: "outline" }))}
+          >
+            Cancel
+          </Link>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Adding..." : "Add User"}
+          </Button>
+        </CardFooter>
+      </form>
+    </Card>
   )
 }

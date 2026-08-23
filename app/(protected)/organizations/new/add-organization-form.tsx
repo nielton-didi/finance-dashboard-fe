@@ -1,26 +1,25 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { PlusIcon } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
 import { createOrganization } from "@/lib/actions/organizations"
+import { cn } from "@/lib/utils"
 
-export function AddOrganizationSheet() {
+export function AddOrganizationForm() {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -44,38 +43,25 @@ export function AddOrganizationSheet() {
         return
       }
 
-      setOpen(false)
-      event.currentTarget.reset()
-      router.refresh()
+      router.push(
+        result.data ? `/organizations/${result.data.id}/settings` : "/"
+      )
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <Sheet
-      open={open}
-      onOpenChange={(nextOpen) => {
-        setOpen(nextOpen)
-        if (!nextOpen) setError(null)
-      }}
-    >
-      <SheetTrigger render={<Button />}>
-        <PlusIcon />
-        New Organization
-      </SheetTrigger>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>New Organization</SheetTitle>
-          <SheetDescription>
-            Creates a new organization. You can configure its Autocount
-            database connection afterwards from its Settings page.
-          </SheetDescription>
-        </SheetHeader>
-        <form
-          className="flex flex-1 flex-col gap-4 overflow-y-auto px-4"
-          onSubmit={handleSubmit}
-        >
+    <Card>
+      <CardHeader>
+        <CardTitle>Add Organization</CardTitle>
+        <CardDescription>
+          Creates a new organization. You can configure its Autocount database
+          connection afterwards from its Settings page.
+        </CardDescription>
+      </CardHeader>
+      <form className="contents" onSubmit={handleSubmit}>
+        <CardContent>
           <FieldGroup>
             {error && (
               <p className="text-sm text-destructive" role="alert">
@@ -83,9 +69,7 @@ export function AddOrganizationSheet() {
               </p>
             )}
             <Field>
-              <FieldLabel htmlFor="new-org-name">
-                Organization Name
-              </FieldLabel>
+              <FieldLabel htmlFor="new-org-name">Organization Name</FieldLabel>
               <Input
                 id="new-org-name"
                 name="org-name"
@@ -108,13 +92,16 @@ export function AddOrganizationSheet() {
               <Input id="new-org-plan" name="org-plan" placeholder="Pro" />
             </Field>
           </FieldGroup>
-          <SheetFooter className="mt-auto px-0">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Create Organization"}
-            </Button>
-          </SheetFooter>
-        </form>
-      </SheetContent>
-    </Sheet>
+        </CardContent>
+        <CardFooter className="justify-end gap-2">
+          <Link href="/" className={cn(buttonVariants({ variant: "outline" }))}>
+            Cancel
+          </Link>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Creating..." : "Create Organization"}
+          </Button>
+        </CardFooter>
+      </form>
+    </Card>
   )
 }

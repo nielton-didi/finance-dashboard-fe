@@ -21,7 +21,7 @@ export default async function SettingsLayout({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-8 md:flex-row">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 md:flex-row">
       <aside className="md:w-48 md:shrink-0">
         <SettingsNav />
       </aside>
