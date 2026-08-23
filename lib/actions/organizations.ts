@@ -51,3 +51,19 @@ export async function updateOrganization(
 
   return result
 }
+
+export async function deleteOrganization(
+  orgId: number
+): Promise<ActionResult<void>> {
+  const result = await runAction(() =>
+    apiFetch<void>(`/organizations/${orgId}`, {
+      method: "DELETE",
+    })
+  )
+
+  if (result.ok) {
+    revalidatePath("/")
+  }
+
+  return result
+}

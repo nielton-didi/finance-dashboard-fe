@@ -117,6 +117,7 @@ Base URL: `http://localhost:3001` locally (`PORT` env var). All routes except
 | POST | `/organizations` | admin | `{name, registrationNumber?, plan?}` |
 | GET | `/organizations/:orgId` | org-scoped | admin always; staff needs grant |
 | PATCH | `/organizations/:orgId` | admin | |
+| DELETE | `/organizations/:orgId` | admin | cascades to `organization_access` and Autocount credentials; `audit_log.organization_id` set to null |
 | GET | `/organizations/:orgId/settings/database` | admin | password never returned, `hasPassword: true` instead |
 | PUT | `/organizations/:orgId/settings/database` | admin | `{host, port, databaseName, username, password}` |
 | POST | `/organizations/:orgId/settings/database/test-connection` | admin | tries a live connection, `{ok: true}` or an error |
