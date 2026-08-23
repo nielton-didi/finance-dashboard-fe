@@ -14,21 +14,25 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Building2Icon, ChevronsUpDownIcon } from "lucide-react"
-import { organizations } from "@/config/organizations"
+import type { Organization } from "@/lib/organizations"
 
-export function OrgSwitcher() {
+export function OrgSwitcher({
+  organizations,
+}: {
+  organizations: Organization[]
+}) {
   const { orgId } = useParams<{ orgId: string }>()
   const pathname = usePathname()
   const router = useRouter()
 
   const activeOrg =
-    organizations.find((org) => org.id === orgId) ?? organizations[0]
+    organizations.find((org) => String(org.id) === orgId) ?? organizations[0]
 
   if (!activeOrg) {
     return null
   }
 
-  function handleSelect(nextOrgId: string) {
+  function handleSelect(nextOrgId: number) {
     const subPath = pathname.replace(`/organizations/${orgId}`, "")
     router.push(`/organizations/${nextOrgId}${subPath}`)
   }

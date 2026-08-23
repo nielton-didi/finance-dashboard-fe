@@ -1,3 +1,5 @@
+import { format } from "date-fns"
+
 import {
   Card,
   CardContent,
@@ -13,36 +15,44 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { apiFetch } from "@/lib/api"
+import { getUsers } from "@/lib/users"
 
-// TODO: replace with audit events fetched from the backend once it's available
-const auditEvents = [
-  {
-    timestamp: "2026-08-20 09:12",
-    user: "Jane Doe",
-    action: "Signed in",
-    details: "—",
-  },
-  {
-    timestamp: "2026-08-19 17:45",
-    user: "Jane Doe",
-    action: "Updated AutoCount Database connection",
-    details: "Host changed",
-  },
-  {
-    timestamp: "2026-08-19 14:03",
-    user: "John Tan",
-    action: "Updated organization profile",
-    details: "Registration number added",
-  },
-  {
-    timestamp: "2026-08-18 11:20",
-    user: "John Tan",
-    action: "Changed password",
-    details: "—",
-  },
-]
+interface AuditLogEntry {
+  id: number
+  organizationId: number | null
+  userId: number | null
+  action: string
+  details: string | null
+  createdAt: string
+}
 
-export default function AuditLogPage() {
+function formatDetails(details: string | null): string {
+  if (!details) return "—"
+  try {
+    const parsed = JSON.parse(details)
+    return Object.entries(parsed)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(", ")
+  } catch {
+    return details
+  }
+}
+
+export default async function AuditLogPage({
+  params,
+}: {
+  params: Promise<{ orgId: string }>
+}) {
+  const { orgId } = await params
+
+  const [auditEvents, users] = await Promise.all([
+    apiFetch<AuditLogEntry[]>(`/organizations/${orgId}/audit-log`),
+    getUsers(),
+  ])
+
+  const userNameById = new Map(users.map((u) => [u.id, u.fullName]))
+
   return (
     <Card>
       <CardHeader>
@@ -62,15 +72,19 @@ export default function AuditLogPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {auditEvents.map((event, index) => (
-              <TableRow key={index}>
+            {auditEvents.map((event) => (
+              <TableRow key={event.id}>
                 <TableCell className="text-muted-foreground">
-                  {event.timestamp}
+                  {format(new Date(event.createdAt), "yyyy-MM-dd HH:mm")}
                 </TableCell>
-                <TableCell>{event.user}</TableCell>
+                <TableCell>
+                  {event.userId
+                    ? (userNameById.get(event.userId) ?? `User #${event.userId}`)
+                    : "System"}
+                </TableCell>
                 <TableCell>{event.action}</TableCell>
                 <TableCell className="text-muted-foreground">
-                  {event.details}
+                  {formatDetails(event.details)}
                 </TableCell>
               </TableRow>
             ))}
