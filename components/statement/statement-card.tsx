@@ -64,7 +64,7 @@ export function StatementCard({
   blocks: StatementBlock[]
   columns: StatementColumn[]
   comparing: boolean
-  percentLabel: string
+  percentLabel?: string
   notes: string[]
   toolbarStart?: React.ReactNode
   banner?: React.ReactNode
@@ -97,6 +97,7 @@ export function StatementCard({
       blocks,
       columnLabels: columns.map((column) => column.label),
       comparing,
+      withPercent: percentLabel !== undefined,
       hideZeroRows,
       fileName: `${slug(`${reportName} ${title}`)}_${fileSuffix}`,
       sheetName: reportName,

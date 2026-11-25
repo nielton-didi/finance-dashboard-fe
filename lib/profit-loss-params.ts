@@ -1,18 +1,4 @@
-import {
-  endOfMonth,
-  endOfYear,
-  startOfMonth,
-  startOfYear,
-  subMonths,
-  subYears,
-} from "date-fns"
-
-import {
-  isoDate,
-  parseDateParam,
-  single,
-  type RawSearchParams,
-} from "@/lib/report-params"
+import { parseRange, single, type RawSearchParams } from "@/lib/report-params"
 
 export type ProfitLossView = "period" | "monthly" | "quarterly"
 export type ProfitLossCompareTo = "none" | "prior_year" | "budget"
@@ -31,11 +17,7 @@ const VIEWS: ProfitLossView[] = ["period", "monthly", "quarterly"]
 
 /** Reads the report's URL state, falling back to month-to-date vs prior year. */
 export function parseProfitLossParams(raw: RawSearchParams): ProfitLossParams {
-  const today = new Date()
-  let fromDate = parseDateParam(raw.fromDate) ?? isoDate(startOfMonth(today))
-  let toDate = parseDateParam(raw.toDate) ?? isoDate(today)
-  if (fromDate > toDate) [fromDate, toDate] = [toDate, fromDate]
-
+  const { fromDate, toDate } = parseRange(raw)
   const view = VIEWS.find((v) => v === single(raw.view)) ?? "period"
 
   const compare = single(raw.compare) ?? "prior_year"
@@ -62,53 +44,4 @@ export function compareValue({
   budgetKey,
 }: Pick<ProfitLossParams, "compareTo" | "budgetKey">): string {
   return compareTo === "budget" ? `budget:${budgetKey}` : compareTo
-}
-
-export const PERIOD_PRESETS = {
-  this_month: "This month",
-  last_month: "Last month",
-  ytd: "Year to date",
-  last_year: "Last year",
-} as const
-
-export type PeriodPreset = keyof typeof PERIOD_PRESETS
-
-export function presetRange(preset: PeriodPreset): {
-  fromDate: string
-  toDate: string
-} {
-  const today = new Date()
-  const range = (from: Date, to: Date) => ({
-    fromDate: isoDate(from),
-    toDate: isoDate(to),
-  })
-
-  switch (preset) {
-    // Month to date, so a comparison is like for like (the same days last year).
-    case "this_month":
-      return range(startOfMonth(today), today)
-    case "last_month": {
-      const lastMonth = subMonths(today, 1)
-      return range(startOfMonth(lastMonth), endOfMonth(lastMonth))
-    }
-    case "ytd":
-      return range(startOfYear(today), today)
-    case "last_year": {
-      const lastYear = subYears(today, 1)
-      return range(startOfYear(lastYear), endOfYear(lastYear))
-    }
-  }
-}
-
-export function matchPreset(
-  fromDate: string,
-  toDate: string
-): PeriodPreset | "custom" {
-  const presets = Object.keys(PERIOD_PRESETS) as PeriodPreset[]
-  return (
-    presets.find((preset) => {
-      const range = presetRange(preset)
-      return range.fromDate === fromDate && range.toDate === toDate
-    }) ?? "custom"
-  )
 }

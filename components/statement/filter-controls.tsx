@@ -3,8 +3,15 @@
 import * as React from "react"
 import { RefreshCwIcon } from "lucide-react"
 
+import { DateRangePicker } from "@/components/statement/date-range-picker"
 import { useReportNavigation } from "@/components/statement/report-navigation"
 import { Button } from "@/components/ui/button"
+import {
+  matchPreset,
+  PERIOD_PRESETS,
+  presetRange,
+  type PeriodPreset,
+} from "@/lib/report-params"
 import type { StatementFilterOptions } from "@/lib/statement"
 import { cn } from "@/lib/utils"
 
@@ -24,6 +31,49 @@ export function FilterSelect({
         {...props}
       />
     </label>
+  )
+}
+
+export function RangeFilters({
+  fromDate,
+  toDate,
+}: {
+  fromDate: string
+  toDate: string
+}) {
+  const { setParams } = useReportNavigation()
+  return (
+    <>
+      <FilterSelect
+        label="Quick range"
+        value={matchPreset(fromDate, toDate)}
+        onChange={(event) => {
+          if (event.target.value === "custom") return
+          setParams(presetRange(event.target.value as PeriodPreset))
+        }}
+      >
+        {Object.entries(PERIOD_PRESETS).map(([key, label]) => (
+          <option key={key} value={key}>
+            {label}
+          </option>
+        ))}
+        {/* Reached by picking dates, never by choosing it here. */}
+        <option value="custom" disabled>
+          Custom
+        </option>
+      </FilterSelect>
+
+      <div className="flex flex-col gap-1 text-xs">
+        <span className="text-muted-foreground">Date range</span>
+        <DateRangePicker
+          // Presets change the range from outside, so start from fresh state.
+          key={`${fromDate}_${toDate}`}
+          fromDate={fromDate}
+          toDate={toDate}
+          onChange={(from, to) => setParams({ fromDate: from, toDate: to })}
+        />
+      </div>
+    </>
   )
 }
 

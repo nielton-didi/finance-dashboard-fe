@@ -219,8 +219,8 @@ export function StatementTable({
   columns: StatementColumn[]
   /** Adds variance columns between the first two columns. */
   comparing: boolean
-  /** What the % columns are a percentage of. */
-  percentLabel: string
+  /** What the % columns are a percentage of; omit for no % columns. */
+  percentLabel?: string
   collapsed: ReadonlySet<string>
   search: string
   hideZeroRows: boolean
@@ -229,7 +229,7 @@ export function StatementTable({
   onDrilldown?: DrilldownHandler
 }) {
   // Beyond two amounts (the period breakdown), % columns would crowd out the figures.
-  const withPercent = columns.length <= 2
+  const withPercent = percentLabel !== undefined && columns.length <= 2
   const columnCount =
     2 + columns.length * (withPercent ? 2 : 1) + (comparing ? 2 : 0)
   const searching = search.trim() !== ""

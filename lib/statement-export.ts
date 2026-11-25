@@ -21,6 +21,7 @@ export function buildExportSheet({
   blocks,
   columnLabels,
   comparing,
+  withPercent: percentWanted,
   hideZeroRows,
   fileName,
   sheetName,
@@ -28,12 +29,13 @@ export function buildExportSheet({
   blocks: StatementBlock[]
   columnLabels: string[]
   comparing: boolean
+  withPercent: boolean
   hideZeroRows: boolean
   fileName: string
   sheetName: string
 }): ExportSheet {
   // The period view has a % column beside each amount; the breakdown does not.
-  const withPercent = columnLabels.length <= 2
+  const withPercent = percentWanted && columnLabels.length <= 2
   const headers = ["Code", "Account Name"]
   for (const label of columnLabels) {
     headers.push(label)
