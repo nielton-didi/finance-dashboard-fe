@@ -5,7 +5,7 @@ Next.js frontend for the finance dashboard, built with shadcn/ui. Talks to the
 [BACKEND_INTEGRATION.md](./BACKEND_INTEGRATION.md) for how the two repos fit together.
 
 New to the project? Start with [HANDOVER.md](./HANDOVER.md): full setup of both repos, features,
-and how to extend it.
+deployment, and how to extend it. Technical design is in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Prerequisites
 
