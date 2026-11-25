@@ -94,8 +94,8 @@ need to change to match — this is more than swapping a mock import for a fetch
 - **Invite-by-email flow**: `users.status` supports `invited`, but there's no email
   sending / invite-token acceptance flow built — `POST /users` creates a user directly
   with a real password today, it doesn't invite them.
-- **xlsx export**: the frontend has an unused `xlsx` dependency; nothing on the backend
-  supports export yet. Confirm with the user whether/how this is still planned.
+- **CSV/xlsx export** of the P&L is built client-side from the loaded statement
+  (`lib/profit-loss-export.ts`); the backend has no export endpoint.
 
 ## Full API reference
 
@@ -122,7 +122,11 @@ Base URL: `http://localhost:3001` locally (`PORT` env var). All routes except
 | PUT | `/organizations/:orgId/settings/database` | admin | `{host, port, databaseName, username, password}` |
 | POST | `/organizations/:orgId/settings/database/test-connection` | admin | tries a live connection, `{ok: true}` or an error |
 | GET | `/organizations/:orgId/audit-log` | admin | |
-| GET | `/organizations/:orgId/profit-loss?fromDate&toDate` | org-scoped + report:view | dates as `YYYY-MM-DD` |
+| GET | `/organizations/:orgId/profit-loss?fromDate&toDate` | org-scoped + report:view | dates as `YYYY-MM-DD`. Optional `compareTo=none\|prior_year\|budget` (`budgetKey` required for `budget`), `projectNo`, `deptNo`. Returns every P&L account, including zero ones, plus `comparison` and `notes` |
+| GET | `/organizations/:orgId/profit-loss/breakdown` | same | range + `interval=monthly\|quarterly`, max 36 months |
+| GET | `/organizations/:orgId/profit-loss/trend?year` | same | monthly net sales, year vs prior year |
+| GET | `/organizations/:orgId/profit-loss/transactions` | same | range + exactly one of `accountNo` / `accType`; latest 1,000 GL lines, totals cover all |
+| GET | `/organizations/:orgId/profit-loss/filters` | same | projects, departments and budgets from AutoCount |
 | GET | `/health?orgId=` | public | app DB status always; Autocount status only if `orgId` passed |
 
 **Error shape for Autocount connection failures** (from `profit-loss`, `test-connection`):
