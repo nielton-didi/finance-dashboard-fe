@@ -129,6 +129,8 @@ Base URL: `http://localhost:3001` locally (`PORT` env var). All routes except
 | GET | `/organizations/:orgId/cash-flow?fromDate&toDate` | org-scoped + report:view | indirect method, sections from AutoCount's `GLMast.CashFlowCategory`. Optional `compareTo=none\|prior_year`, `projectNo`, `deptNo`. Includes `unreconciled` (0 when it reconciles) and `notes` |
 | GET | `/organizations/:orgId/cash-flow/transactions` | same | range + `accountNo`; a control account includes its debtors/creditors |
 | GET | `/organizations/:orgId/dashboard?asOfDate` | org-scoped + report:view | month to date, fiscal year to date and last 12 months with prior year, financial position, trend, top expenses, cash flow and recent documents; figures match the reports |
+| GET | `/group/overview?asOfDate` | report:view | every organization the user may see: month, fiscal year and last 12 months with prior year, and totals. `excluded` lists organizations that could not be read; `warnings` flags shared databases and mixed currencies |
+| GET | `/group/consolidated?fromDate&toDate` | report:view | same shape, with sales, profit, total assets, equity and cash |
 | GET | `/health?orgId=` | public | app DB status always; Autocount status only if `orgId` passed |
 
 **Error shape for Autocount connection failures** (from `profit-loss`, `test-connection`):

@@ -16,14 +16,22 @@ import {
   type ExportSheet,
 } from "@/lib/statement-export"
 
-export function ExportMenu({ getSheet }: { getSheet: () => ExportSheet }) {
+export function ExportMenu({
+  getSheet,
+  downloadPdf,
+}: {
+  getSheet: () => ExportSheet
+  /** Adds a PDF option. */
+  downloadPdf?: () => Promise<void>
+}) {
   const [failed, setFailed] = React.useState(false)
 
-  async function handleExport(format: "csv" | "xlsx") {
+  async function handleExport(format: "csv" | "xlsx" | "pdf") {
     setFailed(false)
     try {
       if (format === "csv") downloadCsv(getSheet())
-      else await downloadExcel(getSheet())
+      else if (format === "xlsx") await downloadExcel(getSheet())
+      else await downloadPdf?.()
     } catch {
       setFailed(true)
     }
@@ -49,6 +57,11 @@ export function ExportMenu({ getSheet }: { getSheet: () => ExportSheet }) {
           <DropdownMenuItem onClick={() => handleExport("xlsx")}>
             Excel (.xlsx)
           </DropdownMenuItem>
+          {downloadPdf && (
+            <DropdownMenuItem onClick={() => handleExport("pdf")}>
+              PDF (.pdf)
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

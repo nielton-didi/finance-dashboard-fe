@@ -80,13 +80,20 @@ export function StatementKpis<T>({
   kpis,
   current: statement,
   comparison,
+  columns = 4,
 }: {
   kpis: Kpi<T>[]
   current: T
   comparison: { label: string; statement: T } | null
+  columns?: 3 | 4
 }) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div
+      className={cn(
+        "grid grid-cols-1 gap-4 sm:grid-cols-2",
+        columns === 3 ? "lg:grid-cols-3" : "lg:grid-cols-4"
+      )}
+    >
       {kpis.map(({ label, unit, higherIsBetter = true, value }) => {
         const current = value(statement)
         const compared = comparison ? value(comparison.statement) : null
