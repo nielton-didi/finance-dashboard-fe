@@ -15,6 +15,8 @@ import {
 import { orgLabelByPath, orgPath } from "@/lib/org-routes"
 
 const globalLabelByUrl = new Map<string, string>([
+  ["/group-overview", "Group Overview"],
+  ["/consolidated", "Consolidated"],
   ["/users", "Users"],
   ["/account", "Profile & Security"],
 ])

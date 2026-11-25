@@ -2,7 +2,14 @@
 
 import Link from "next/link"
 import { useParams, usePathname } from "next/navigation"
-import { Building2Icon, ShieldUserIcon, UsersIcon } from "lucide-react"
+import {
+  Building2Icon,
+  ChartColumnIcon,
+  LayersIcon,
+  ShieldUserIcon,
+  UsersIcon,
+  type LucideIcon,
+} from "lucide-react"
 
 import { NavGroup } from "@/components/nav-group"
 import { NavUser } from "@/components/nav-user"
@@ -27,10 +34,29 @@ import {
 import { navGroups } from "@/config/nav"
 import type { Organization } from "@/lib/organizations"
 
-const globalItems = [
-  { title: "Organizations", url: "/", icon: Building2Icon, adminOnly: false },
+const globalItems: {
+  title: string
+  url: string
+  icon: LucideIcon
+  adminOnly?: boolean
+  // Only useful to someone who sees more than one organization.
+  groupOnly?: boolean
+}[] = [
+  { title: "Organizations", url: "/", icon: Building2Icon },
+  {
+    title: "Group Overview",
+    url: "/group-overview",
+    icon: ChartColumnIcon,
+    groupOnly: true,
+  },
+  {
+    title: "Consolidated",
+    url: "/consolidated",
+    icon: LayersIcon,
+    groupOnly: true,
+  },
   { title: "Users", url: "/users", icon: UsersIcon, adminOnly: true },
-  { title: "Account", url: "/account", icon: ShieldUserIcon, adminOnly: false },
+  { title: "Account", url: "/account", icon: ShieldUserIcon },
 ]
 
 function isItemActive(pathname: string, url: string) {
@@ -58,7 +84,9 @@ export function AppShell({
   const inOrg = Boolean(orgId)
 
   const visibleGlobalItems = globalItems.filter(
-    (item) => !item.adminOnly || role === "admin"
+    (item) =>
+      (!item.adminOnly || role === "admin") &&
+      (!item.groupOnly || organizations.length > 1)
   )
   const visibleNavGroups = navGroups
     .map((group) => ({

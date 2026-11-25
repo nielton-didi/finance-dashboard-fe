@@ -4,6 +4,9 @@ Next.js frontend for the finance dashboard, built with shadcn/ui. Talks to the
 `finance-dashboard-be` API (sibling repo) for auth, organizations, and reports — see
 [BACKEND_INTEGRATION.md](./BACKEND_INTEGRATION.md) for how the two repos fit together.
 
+New to the project? Start with [HANDOVER.md](./HANDOVER.md): full setup of both repos, features,
+and how to extend it.
+
 ## Prerequisites
 
 - Node.js 20+

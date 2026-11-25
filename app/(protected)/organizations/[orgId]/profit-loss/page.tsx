@@ -1,30 +1,51 @@
-import { format } from "date-fns"
-
+import { ProfitLossCharts } from "@/components/profit-loss/profit-loss-charts"
+import { ProfitLossFilters } from "@/components/profit-loss/profit-loss-filters"
+import { ProfitLossKpis } from "@/components/profit-loss/profit-loss-kpis"
+import { ProfitLossStatementCard } from "@/components/profit-loss/profit-loss-statement-card"
 import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { DateRangePicker } from "@/components/profit-loss/date-range-picker"
-import { ProfitLossTable } from "@/components/profit-loss/profit-loss-table"
-import { ApiError } from "@/lib/api"
-import { getProfitLoss } from "@/lib/profit-loss"
+  ReportContent,
+  ReportNavigationProvider,
+} from "@/components/statement/report-navigation"
+import {
+  isDisplayableError,
+  ReportError,
+} from "@/components/statement/report-error"
+import {
+  getProfitLoss,
+  getProfitLossBreakdown,
+  getProfitLossTrend,
+} from "@/lib/profit-loss"
+import {
+  parseProfitLossParams,
+  type ProfitLossParams,
+} from "@/lib/profit-loss-params"
+import { getStatementFilterOptions, NO_FILTER_OPTIONS } from "@/lib/statement"
 
-function AutocountErrorMessage({ error }: { error: ApiError }) {
-  const message =
-    error.reason === "NOT_CONFIGURED"
-      ? "This organization's Autocount database hasn't been set up yet. Add its connection details in Settings > AutoCount Database."
-      : "This organization's Autocount database isn't reachable right now. Please try again later."
+async function loadReport(orgId: number, params: ProfitLossParams) {
+  try {
+    const [data, trend, breakdown] = await Promise.all([
+      getProfitLoss(orgId, params),
+      getProfitLossTrend(orgId, params),
+      params.view === "period"
+        ? null
+        : getProfitLossBreakdown(orgId, params, params.view),
+    ])
+    return { data, trend, breakdown, error: null }
+  } catch (error) {
+    if (isDisplayableError(error)) return { error }
+    throw error
+  }
+}
 
-  return (
-    <div className="flex flex-col items-center gap-2 py-16 text-center">
-      <p className="font-medium">{message}</p>
-      <p className="text-sm text-muted-foreground">{error.message}</p>
-    </div>
-  )
+function fallBackToNoOptions(error: unknown) {
+  if (isDisplayableError(error)) return NO_FILTER_OPTIONS
+  throw error
+}
+
+function lastMonthWithData(year: number): number {
+  const today = new Date()
+  if (year < today.getFullYear()) return 12
+  return year === today.getFullYear() ? today.getMonth() + 1 : 0
 }
 
 export default async function ProfitLossPage({
@@ -34,49 +55,39 @@ export default async function ProfitLossPage({
   params: Promise<{ orgId: string }>
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-  const { orgId } = await params
-  const { fromDate: rawFrom, toDate: rawTo } = await searchParams
+  const orgId = Number((await params).orgId)
+  const reportParams = parseProfitLossParams(await searchParams)
 
-  const today = new Date()
-  const defaultFrom = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`
-  const defaultTo = today.toISOString().slice(0, 10)
-
-  const fromDate = typeof rawFrom === "string" ? rawFrom : defaultFrom
-  const toDate = typeof rawTo === "string" ? rawTo : defaultTo
-
-  let data
-  let error: ApiError | null = null
-  try {
-    data = await getProfitLoss(Number(orgId), fromDate, toDate)
-  } catch (err) {
-    if (err instanceof ApiError && err.reason) {
-      error = err
-    } else {
-      throw err
-    }
-  }
+  const [report, options] = await Promise.all([
+    loadReport(orgId, reportParams),
+    getStatementFilterOptions(orgId).catch(fallBackToNoOptions),
+  ])
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
-      <Card>
-        <CardHeader>
-          <CardTitle>{data?.companyName ?? "Profit & Loss"}</CardTitle>
-          <CardDescription>
-            Profit &amp; Loss statement, {format(new Date(fromDate + "T00:00:00"), "MMM d, yyyy")} –{" "}
-            {format(new Date(toDate + "T00:00:00"), "MMM d, yyyy")}
-          </CardDescription>
-          <CardAction>
-            <DateRangePicker fromDate={fromDate} toDate={toDate} />
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          {error ? (
-            <AutocountErrorMessage error={error} />
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
+      <ReportNavigationProvider>
+        <ProfitLossFilters params={reportParams} options={options} />
+        <ReportContent>
+          {report.error ? (
+            <ReportError error={report.error} />
           ) : (
-            data && <ProfitLossTable data={data} />
+            <>
+              <ProfitLossKpis data={report.data} />
+              <ProfitLossCharts
+                statement={report.data}
+                trend={report.trend}
+                lastTrendMonth={lastMonthWithData(report.trend.year)}
+              />
+              <ProfitLossStatementCard
+                orgId={orgId}
+                params={reportParams}
+                data={report.data}
+                breakdown={report.breakdown}
+              />
+            </>
           )}
-        </CardContent>
-      </Card>
+        </ReportContent>
+      </ReportNavigationProvider>
     </div>
   )
 }

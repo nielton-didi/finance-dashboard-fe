@@ -1,25 +1,28 @@
 "use client"
 
 import * as React from "react"
-import { useRouter, usePathname } from "next/navigation"
 import { format } from "date-fns"
 import { CalendarIcon } from "lucide-react"
 import type { DateRange } from "react-day-picker"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 
 export function DateRangePicker({
   fromDate,
   toDate,
+  onChange,
 }: {
   fromDate: string
   toDate: string
+  onChange: (fromDate: string, toDate: string) => void
 }) {
-  const router = useRouter()
-  const pathname = usePathname()
   const [open, setOpen] = React.useState(false)
 
   const [range, setRange] = React.useState<DateRange | undefined>({
@@ -39,11 +42,10 @@ export function DateRangePicker({
 
     setRange(newRange)
     if (newRange?.from && newRange?.to) {
-      const params = new URLSearchParams({
-        fromDate: format(newRange.from, "yyyy-MM-dd"),
-        toDate: format(newRange.to, "yyyy-MM-dd"),
-      })
-      router.replace(`${pathname}?${params}`)
+      onChange(
+        format(newRange.from, "yyyy-MM-dd"),
+        format(newRange.to, "yyyy-MM-dd")
+      )
       setOpen(false)
     }
   }
@@ -59,13 +61,16 @@ export function DateRangePicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         render={
-          <Button variant="outline" className={cn(!range && "text-muted-foreground")} />
+          <Button
+            variant="outline"
+            className={cn(!range && "text-muted-foreground")}
+          />
         }
       >
         <CalendarIcon />
         {label}
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="end">
+      <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="range"
           selected={range}

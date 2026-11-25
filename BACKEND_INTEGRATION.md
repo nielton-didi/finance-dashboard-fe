@@ -88,14 +88,11 @@ need to change to match — this is more than swapping a mock import for a fetch
 
 ## Known backend gaps (not blockers, just not built yet)
 
-- **Dashboard** (`app/(protected)/organizations/[orgId]/dashboard/page.tsx`) has no
-  backend endpoint at all — it's still 20 placeholder boxes on the frontend and there
-  was never a requirements pass on what KPIs it should show. Nothing to integrate yet.
 - **Invite-by-email flow**: `users.status` supports `invited`, but there's no email
   sending / invite-token acceptance flow built — `POST /users` creates a user directly
   with a real password today, it doesn't invite them.
-- **xlsx export**: the frontend has an unused `xlsx` dependency; nothing on the backend
-  supports export yet. Confirm with the user whether/how this is still planned.
+- **CSV/xlsx export** of the reports is built client-side from the loaded data
+  (`lib/statement-export.ts`); the backend has no export endpoint.
 
 ## Full API reference
 
@@ -122,7 +119,18 @@ Base URL: `http://localhost:3001` locally (`PORT` env var). All routes except
 | PUT | `/organizations/:orgId/settings/database` | admin | `{host, port, databaseName, username, password}` |
 | POST | `/organizations/:orgId/settings/database/test-connection` | admin | tries a live connection, `{ok: true}` or an error |
 | GET | `/organizations/:orgId/audit-log` | admin | |
-| GET | `/organizations/:orgId/profit-loss?fromDate&toDate` | org-scoped + report:view | dates as `YYYY-MM-DD` |
+| GET | `/organizations/:orgId/profit-loss?fromDate&toDate` | org-scoped + report:view | dates as `YYYY-MM-DD`. Optional `compareTo=none\|prior_year\|budget` (`budgetKey` required for `budget`), `projectNo`, `deptNo`. Returns every P&L account, including zero ones, plus `comparison` and `notes` |
+| GET | `/organizations/:orgId/profit-loss/breakdown` | same | range + `interval=monthly\|quarterly`, max 36 months |
+| GET | `/organizations/:orgId/profit-loss/trend?year` | same | monthly net sales, year vs prior year |
+| GET | `/organizations/:orgId/profit-loss/transactions` | same | range + exactly one of `accountNo` / `accType`; latest 1,000 GL lines, totals cover all |
+| GET | `/organizations/:orgId/profit-loss/filters` | same | projects, departments and budgets from AutoCount |
+| GET | `/organizations/:orgId/balance-sheet?asOfDate` | org-scoped + report:view | optional `compareTo=none\|prior_year`, `projectNo`, `deptNo`. Includes `outOfBalance` (0 when it balances) and `notes` |
+| GET | `/organizations/:orgId/balance-sheet/transactions?asOfDate&accountNo` | same | a control account includes its debtors/creditors; totals include the opening balance |
+| GET | `/organizations/:orgId/cash-flow?fromDate&toDate` | org-scoped + report:view | indirect method, sections from AutoCount's `GLMast.CashFlowCategory`. Optional `compareTo=none\|prior_year`, `projectNo`, `deptNo`. Includes `unreconciled` (0 when it reconciles) and `notes` |
+| GET | `/organizations/:orgId/cash-flow/transactions` | same | range + `accountNo`; a control account includes its debtors/creditors |
+| GET | `/organizations/:orgId/dashboard?asOfDate` | org-scoped + report:view | month to date, fiscal year to date and last 12 months with prior year, financial position, trend, top expenses, cash flow and recent documents; figures match the reports |
+| GET | `/group/overview?asOfDate` | report:view | every organization the user may see: month, fiscal year and last 12 months with prior year, and totals. `excluded` lists organizations that could not be read; `warnings` flags shared databases and mixed currencies |
+| GET | `/group/consolidated?fromDate&toDate` | report:view | same shape, with sales, profit, total assets, equity and cash |
 | GET | `/health?orgId=` | public | app DB status always; Autocount status only if `orgId` passed |
 
 **Error shape for Autocount connection failures** (from `profit-loss`, `test-connection`):
@@ -144,4 +152,4 @@ than a generic error state.
    almost 1:1 already, straightforward swaps.
 5. Users/Account pages — Account is a straightforward swap; Users needs the RBAC-model
    rework noted above.
-6. Dashboard — blocked on KPI requirements, not an integration task yet.
+6. Dashboard — done; see `/dashboard` above.
