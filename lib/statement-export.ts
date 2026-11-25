@@ -80,6 +80,11 @@ export function buildExportSheet({
   return { fileName, sheetName, headers, rows }
 }
 
+/** Turns a title into a file name, keeping letters of any script. */
+export function exportSlug(name: string): string {
+  return name.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "")
+}
+
 function escapeCsv(value: ExportCell): string {
   if (value === null) return ""
   if (typeof value === "number") return String(value)

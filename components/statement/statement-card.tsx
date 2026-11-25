@@ -1,8 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { ChevronDownIcon, DownloadIcon, SearchIcon } from "lucide-react"
+import { SearchIcon } from "lucide-react"
 
+import { ExportMenu } from "@/components/statement/export-menu"
 import {
   StatementTable,
   type StatementColumn,
@@ -19,27 +20,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import {
-  buildExportSheet,
-  downloadCsv,
-  downloadExcel,
-} from "@/lib/statement-export"
+import { buildExportSheet, exportSlug } from "@/lib/statement-export"
 import type {
   ItemRow,
   SectionBlock,
   StatementBlock,
 } from "@/lib/statement-rows"
-
-function slug(name: string): string {
-  return name.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "")
-}
 
 /** A statement with its toolbar: search, zero rows, collapsing, export and drilldown. */
 export function StatementCard({
@@ -77,7 +64,6 @@ export function StatementCard({
     new Set()
   )
   const [drilldown, setDrilldown] = React.useState<Drilldown | null>(null)
-  const [exportError, setExportError] = React.useState(false)
 
   const sectionIds = blocks
     .filter((block) => block.kind === "section")
@@ -92,24 +78,16 @@ export function StatementCard({
     })
   }
 
-  async function handleExport(format: "csv" | "xlsx") {
-    const sheet = buildExportSheet({
+  const getSheet = () =>
+    buildExportSheet({
       blocks,
       columnLabels: columns.map((column) => column.label),
       comparing,
       withPercent: percentLabel !== undefined,
       hideZeroRows,
-      fileName: `${slug(`${reportName} ${title}`)}_${fileSuffix}`,
+      fileName: `${exportSlug(`${reportName} ${title}`)}_${fileSuffix}`,
       sheetName: reportName,
     })
-    setExportError(false)
-    try {
-      if (format === "csv") downloadCsv(sheet)
-      else await downloadExcel(sheet)
-    } catch {
-      setExportError(true)
-    }
-  }
 
   return (
     <Card>
@@ -156,31 +134,11 @@ export function StatementCard({
             >
               {allCollapsed ? "Expand all" : "Collapse all"}
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="outline" />}>
-                <DownloadIcon />
-                Export
-                <ChevronDownIcon />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-auto">
-                <DropdownMenuItem onClick={() => handleExport("csv")}>
-                  CSV (.csv)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport("xlsx")}>
-                  Excel (.xlsx)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ExportMenu getSheet={getSheet} />
           </div>
         </div>
 
         {banner}
-        {exportError && (
-          <p role="alert" className="text-sm text-destructive">
-            The export could not be created. Please try again.
-          </p>
-        )}
-
         <StatementTable
           blocks={blocks}
           columns={columns}

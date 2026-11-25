@@ -3,13 +3,18 @@
 import * as React from "react"
 import { RefreshCwIcon } from "lucide-react"
 
+import { DatePicker } from "@/components/statement/date-picker"
 import { DateRangePicker } from "@/components/statement/date-range-picker"
 import { useReportNavigation } from "@/components/statement/report-navigation"
 import { Button } from "@/components/ui/button"
 import {
+  AS_OF_PRESETS,
+  matchAsOfPreset,
   matchPreset,
   PERIOD_PRESETS,
+  presetDate,
   presetRange,
+  type AsOfPreset,
   type PeriodPreset,
 } from "@/lib/report-params"
 import type { StatementFilterOptions } from "@/lib/statement"
@@ -71,6 +76,40 @@ export function RangeFilters({
           fromDate={fromDate}
           toDate={toDate}
           onChange={(from, to) => setParams({ fromDate: from, toDate: to })}
+        />
+      </div>
+    </>
+  )
+}
+
+export function AsOfFilters({ asOfDate }: { asOfDate: string }) {
+  const { setParams } = useReportNavigation()
+  return (
+    <>
+      <FilterSelect
+        label="Quick date"
+        value={matchAsOfPreset(asOfDate)}
+        onChange={(event) => {
+          if (event.target.value === "custom") return
+          setParams({ asOf: presetDate(event.target.value as AsOfPreset) })
+        }}
+      >
+        {Object.entries(AS_OF_PRESETS).map(([key, label]) => (
+          <option key={key} value={key}>
+            {label}
+          </option>
+        ))}
+        {/* Reached by picking a date, never by choosing it here. */}
+        <option value="custom" disabled>
+          Custom
+        </option>
+      </FilterSelect>
+
+      <div className="flex flex-col gap-1 text-xs">
+        <span className="text-muted-foreground">As of</span>
+        <DatePicker
+          date={asOfDate}
+          onChange={(date) => setParams({ asOf: date })}
         />
       </div>
     </>

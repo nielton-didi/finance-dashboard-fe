@@ -1,5 +1,5 @@
 import { BarList, type BarListItem } from "@/components/statement/bar-list"
-import { NetSalesTrendChart } from "@/components/profit-loss/net-sales-trend-chart"
+import { NetSalesTrendCard } from "@/components/profit-loss/net-sales-trend-card"
 import {
   Card,
   CardContent,
@@ -43,27 +43,14 @@ export function ProfitLossCharts({
   lastTrendMonth: number
 }) {
   const expenses = topExpenses(statement)
-  const hasTrend = trend.months.some((m) => m.current !== 0 || m.prior !== 0)
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <CardTitle>Net sales trend</CardTitle>
-          <CardDescription>
-            By month (RM), {trend.year} against {trend.year - 1}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {hasTrend ? (
-            <NetSalesTrendChart trend={trend} lastMonth={lastTrendMonth} />
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              No sales recorded in {trend.year - 1} or {trend.year}.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      <NetSalesTrendCard
+        className="lg:col-span-2"
+        trend={trend}
+        lastMonth={lastTrendMonth}
+      />
 
       <Card>
         <CardHeader>

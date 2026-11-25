@@ -88,14 +88,11 @@ need to change to match — this is more than swapping a mock import for a fetch
 
 ## Known backend gaps (not blockers, just not built yet)
 
-- **Dashboard** (`app/(protected)/organizations/[orgId]/dashboard/page.tsx`) has no
-  backend endpoint at all — it's still 20 placeholder boxes on the frontend and there
-  was never a requirements pass on what KPIs it should show. Nothing to integrate yet.
 - **Invite-by-email flow**: `users.status` supports `invited`, but there's no email
   sending / invite-token acceptance flow built — `POST /users` creates a user directly
   with a real password today, it doesn't invite them.
-- **CSV/xlsx export** of the P&L is built client-side from the loaded statement
-  (`lib/profit-loss-export.ts`); the backend has no export endpoint.
+- **CSV/xlsx export** of the reports is built client-side from the loaded data
+  (`lib/statement-export.ts`); the backend has no export endpoint.
 
 ## Full API reference
 
@@ -131,6 +128,7 @@ Base URL: `http://localhost:3001` locally (`PORT` env var). All routes except
 | GET | `/organizations/:orgId/balance-sheet/transactions?asOfDate&accountNo` | same | a control account includes its debtors/creditors; totals include the opening balance |
 | GET | `/organizations/:orgId/cash-flow?fromDate&toDate` | org-scoped + report:view | indirect method, sections from AutoCount's `GLMast.CashFlowCategory`. Optional `compareTo=none\|prior_year`, `projectNo`, `deptNo`. Includes `unreconciled` (0 when it reconciles) and `notes` |
 | GET | `/organizations/:orgId/cash-flow/transactions` | same | range + `accountNo`; a control account includes its debtors/creditors |
+| GET | `/organizations/:orgId/dashboard?asOfDate` | org-scoped + report:view | month to date, fiscal year to date and last 12 months with prior year, financial position, trend, top expenses, cash flow and recent documents; figures match the reports |
 | GET | `/health?orgId=` | public | app DB status always; Autocount status only if `orgId` passed |
 
 **Error shape for Autocount connection failures** (from `profit-loss`, `test-connection`):
@@ -152,4 +150,4 @@ than a generic error state.
    almost 1:1 already, straightforward swaps.
 5. Users/Account pages — Account is a straightforward swap; Users needs the RBAC-model
    rework noted above.
-6. Dashboard — blocked on KPI requirements, not an integration task yet.
+6. Dashboard — done; see `/dashboard` above.
