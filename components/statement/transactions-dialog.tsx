@@ -21,26 +21,25 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import type { ActionResult } from "@/lib/api"
-import { fetchProfitLossTransactions } from "@/lib/actions/profit-loss"
-import type {
-  ProfitLossTransactions,
-  ProfitLossTransactionsQuery,
-} from "@/lib/profit-loss"
-import { formatAmount } from "@/lib/profit-loss-format"
-import { formatRange } from "@/lib/profit-loss-params"
+import type { StatementTransactions } from "@/lib/statement"
+import { formatAmount } from "@/lib/statement-format"
 
 export interface Drilldown {
   title: string
+  /** The dates covered, e.g. "Jan 1, 2026 – Jan 31, 2026". */
+  period: string
   note?: string
-  query: ProfitLossTransactionsQuery
+  load: () => Promise<ActionResult<StatementTransactions>>
 }
 
 function amountOrDash(value: number): string {
   return value === 0 ? "–" : formatAmount(value)
 }
 
-function TransactionsTable({ data }: { data: ProfitLossTransactions }) {
-  if (data.rows.length === 0) {
+function TransactionsTable({ data }: { data: StatementTransactions }) {
+  const hasOpening = data.openingDebit !== 0 || data.openingCredit !== 0
+
+  if (data.rows.length === 0 && !hasOpening) {
     return (
       <p className="py-10 text-center text-muted-foreground">
         No transactions in this period.
@@ -94,6 +93,21 @@ function TransactionsTable({ data }: { data: ProfitLossTransactions }) {
                 </TableCell>
               </TableRow>
             ))}
+            {hasOpening && (
+              <TableRow>
+                <TableCell />
+                <TableCell />
+                <TableCell colSpan={2} className="font-medium">
+                  Opening balance
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {amountOrDash(data.openingDebit)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {amountOrDash(data.openingCredit)}
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
           <TableFooter>
             <TableRow>
@@ -114,19 +128,13 @@ function TransactionsTable({ data }: { data: ProfitLossTransactions }) {
   )
 }
 
-function TransactionsContent({
-  orgId,
-  query,
-}: {
-  orgId: number
-  query: ProfitLossTransactionsQuery
-}) {
+function TransactionsContent({ load }: Pick<Drilldown, "load">) {
   const [result, setResult] =
-    React.useState<ActionResult<ProfitLossTransactions> | null>(null)
+    React.useState<ActionResult<StatementTransactions> | null>(null)
 
   React.useEffect(() => {
     let ignore = false
-    fetchProfitLossTransactions(orgId, query)
+    load()
       .catch(() => ({
         ok: false as const,
         message: "Transactions could not be loaded. Please try again.",
@@ -137,7 +145,7 @@ function TransactionsContent({
     return () => {
       ignore = true
     }
-  }, [orgId, query])
+  }, [load])
 
   if (!result) {
     return (
@@ -159,11 +167,9 @@ function TransactionsContent({
 }
 
 export function TransactionsDialog({
-  orgId,
   drilldown,
   onClose,
 }: {
-  orgId: number
   drilldown: Drilldown | null
   onClose: () => void
 }) {
@@ -180,8 +186,7 @@ export function TransactionsDialog({
             <DialogHeader>
               <DialogTitle>{drilldown.title}</DialogTitle>
               <DialogDescription>
-                Transactions,{" "}
-                {formatRange(drilldown.query.fromDate, drilldown.query.toDate)}
+                Transactions, {drilldown.period}
               </DialogDescription>
               {drilldown.note && (
                 <p className="text-xs text-muted-foreground">
@@ -189,7 +194,7 @@ export function TransactionsDialog({
                 </p>
               )}
             </DialogHeader>
-            <TransactionsContent orgId={orgId} query={drilldown.query} />
+            <TransactionsContent load={drilldown.load} />
           </>
         )}
       </DialogContent>

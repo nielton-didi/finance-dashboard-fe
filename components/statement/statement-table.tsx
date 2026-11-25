@@ -1,4 +1,5 @@
 import { Fragment } from "react"
+import Link from "next/link"
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react"
 
 import {
@@ -9,31 +10,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { formatAmount, formatPercent } from "@/lib/profit-loss-format"
+import { formatAmount, formatPercent } from "@/lib/statement-format"
 import {
+  filterBlocks,
   getVariance,
-  isZeroRow,
   type ItemRow,
+  type SectionBlock,
   type StatementBlock,
-} from "@/lib/profit-loss-rows"
+  type StatementRow,
+} from "@/lib/statement-rows"
 import { cn } from "@/lib/utils"
 
-export interface ProfitLossColumn {
+export interface StatementColumn {
   key: string
   label: string
   /** The breakdown's total column is set apart from the periods. */
   isTotal?: boolean
 }
 
-type SectionBlock = Extract<StatementBlock, { kind: "section" }>
-interface VisibleBlock {
-  block: StatementBlock
-  items: ItemRow[]
-}
-type ValueRow = SectionBlock["total"] | ItemRow
+type DrilldownHandler = (item: ItemRow | null, block: SectionBlock) => void
 
 interface ValueCellOptions {
-  columns: ProfitLossColumn[]
+  columns: StatementColumn[]
   withPercent: boolean
   comparing: boolean
 }
@@ -48,7 +46,7 @@ function ValueCells({
   percentClassName,
   onAmountClick,
 }: ValueCellOptions & {
-  row: Parameters<typeof getVariance>[0]
+  row: StatementRow
   className?: string
   percentClassName?: string
   /** Makes the first (current period) amount open its transactions. */
@@ -123,7 +121,8 @@ function Section({
   searching: boolean
   columnCount: number
   onToggle: () => void
-  onDrilldown?: (row: ValueRow, block: SectionBlock) => void
+  /** Called with the clicked account, or null for a whole section. */
+  onDrilldown?: DrilldownHandler
 }) {
   const Chevron = collapsed ? ChevronRightIcon : ChevronDownIcon
 
@@ -157,7 +156,16 @@ function Section({
               {item.accountCode}
             </TableCell>
             <TableCell className="min-w-44 py-1.5 whitespace-normal">
-              {item.label}
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  className="rounded-sm underline decoration-muted-foreground/60 decoration-dotted underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                item.label
+              )}
             </TableCell>
             <ValueCells
               {...values}
@@ -183,8 +191,10 @@ function Section({
             row={block.total}
             className="border-t border-border pt-1.5 pb-2 font-semibold"
             onAmountClick={
-              onDrilldown && block.total.cells[0].amount !== 0
-                ? () => onDrilldown(block.total, block)
+              onDrilldown &&
+              block.canDrillDown &&
+              block.total.cells[0].amount !== 0
+                ? () => onDrilldown(null, block)
                 : undefined
             }
           />
@@ -194,10 +204,11 @@ function Section({
   )
 }
 
-export function ProfitLossTable({
+export function StatementTable({
   blocks,
   columns,
   comparing,
+  percentLabel,
   collapsed,
   search,
   hideZeroRows,
@@ -205,34 +216,24 @@ export function ProfitLossTable({
   onDrilldown,
 }: {
   blocks: StatementBlock[]
-  columns: ProfitLossColumn[]
+  columns: StatementColumn[]
   /** Adds variance columns between the first two columns. */
   comparing: boolean
+  /** What the % columns are a percentage of. */
+  percentLabel: string
   collapsed: ReadonlySet<string>
   search: string
   hideZeroRows: boolean
   onToggleSection: (id: string) => void
-  onDrilldown?: (row: ValueRow, block: SectionBlock) => void
+  /** Called with the clicked account, or null for a whole section. */
+  onDrilldown?: DrilldownHandler
 }) {
   // Beyond two amounts (the period breakdown), % columns would crowd out the figures.
   const withPercent = columns.length <= 2
   const columnCount =
     2 + columns.length * (withPercent ? 2 : 1) + (comparing ? 2 : 0)
-  const term = search.trim().toLowerCase()
-  const searching = term !== ""
-
-  const visible = blocks.flatMap((block): VisibleBlock[] => {
-    if (block.kind === "summary") return searching ? [] : [{ block, items: [] }]
-    const items = block.items.filter(
-      (item) =>
-        !(hideZeroRows && isZeroRow(item)) &&
-        (!searching ||
-          item.label.toLowerCase().includes(term) ||
-          item.accountCode.toLowerCase().includes(term))
-    )
-    return searching && items.length === 0 ? [] : [{ block, items }]
-  })
-
+  const searching = search.trim() !== ""
+  const visible = filterBlocks(blocks, { search, hideZeroRows })
   const values = { columns, withPercent, comparing }
 
   return (
@@ -251,7 +252,7 @@ export function ProfitLossTable({
               {withPercent && (
                 <TableHead
                   className="text-right text-muted-foreground"
-                  title="Percentage of gross sales"
+                  title={percentLabel}
                 >
                   %
                 </TableHead>
@@ -290,6 +291,15 @@ export function ProfitLossTable({
               onToggle={() => onToggleSection(block.id)}
               onDrilldown={onDrilldown}
             />
+          ) : block.kind === "heading" ? (
+            <TableRow key={block.id} className="border-0 hover:bg-transparent">
+              <TableCell
+                colSpan={columnCount}
+                className="pt-6 text-sm font-bold tracking-wide uppercase"
+              >
+                {block.title}
+              </TableCell>
+            </TableRow>
           ) : (
             <TableRow
               key={block.id}

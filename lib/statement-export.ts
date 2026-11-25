@@ -3,12 +3,13 @@ import {
   isZeroRow,
   type Cell,
   type StatementBlock,
-} from "@/lib/profit-loss-rows"
+} from "@/lib/statement-rows"
 
 export type ExportCell = string | number | null
 
 export interface ExportSheet {
   fileName: string
+  sheetName: string
   headers: string[]
   rows: ExportCell[][]
 }
@@ -22,12 +23,14 @@ export function buildExportSheet({
   comparing,
   hideZeroRows,
   fileName,
+  sheetName,
 }: {
   blocks: StatementBlock[]
   columnLabels: string[]
   comparing: boolean
   hideZeroRows: boolean
   fileName: string
+  sheetName: string
 }): ExportSheet {
   // The period view has a % column beside each amount; the breakdown does not.
   const withPercent = columnLabels.length <= 2
@@ -53,19 +56,26 @@ export function buildExportSheet({
 
   const rows: ExportCell[][] = []
   for (const block of blocks) {
+    if (block.kind === "heading") {
+      rows.push([null, block.title])
+      continue
+    }
     if (block.kind === "summary") {
       rows.push([null, block.row.label, ...values(block.row)])
       continue
     }
+    const items = block.items.filter(
+      (item) => !(hideZeroRows && isZeroRow(item))
+    )
+    if (hideZeroRows && block.hideWhenEmpty && items.length === 0) continue
     rows.push([null, block.title])
-    for (const item of block.items) {
-      if (hideZeroRows && isZeroRow(item)) continue
+    for (const item of items) {
       rows.push([item.accountCode, item.label, ...values(item)])
     }
     rows.push([null, block.total.label, ...values(block.total)])
   }
 
-  return { fileName, headers, rows }
+  return { fileName, sheetName, headers, rows }
 }
 
 function escapeCsv(value: ExportCell): string {
@@ -92,6 +102,7 @@ export function downloadCsv({ fileName, headers, rows }: ExportSheet): void {
 
 export async function downloadExcel({
   fileName,
+  sheetName,
   headers,
   rows,
 }: ExportSheet): Promise<void> {
@@ -103,6 +114,6 @@ export async function downloadExcel({
       cell.z = "#,##0.00;(#,##0.00)"
   }
   const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, sheet, "Profit & Loss")
+  XLSX.utils.book_append_sheet(workbook, sheet, sheetName)
   XLSX.writeFile(workbook, `${fileName}.xlsx`)
 }

@@ -5,56 +5,21 @@ import { ProfitLossStatementCard } from "@/components/profit-loss/profit-loss-st
 import {
   ReportContent,
   ReportNavigationProvider,
-} from "@/components/profit-loss/report-navigation"
-import { Card, CardContent } from "@/components/ui/card"
-import { ApiError } from "@/lib/api"
+} from "@/components/statement/report-navigation"
+import {
+  isDisplayableError,
+  ReportError,
+} from "@/components/statement/report-error"
 import {
   getProfitLoss,
   getProfitLossBreakdown,
-  getProfitLossFilterOptions,
   getProfitLossTrend,
-  type ProfitLossFilterOptions,
 } from "@/lib/profit-loss"
 import {
   parseProfitLossParams,
   type ProfitLossParams,
 } from "@/lib/profit-loss-params"
-
-const NO_OPTIONS: ProfitLossFilterOptions = {
-  projects: [],
-  departments: [],
-  budgets: [],
-}
-
-/**
- * Autocount connection problems and rejected filters (e.g. a deleted budget, or a
- * breakdown over too many months) are shown in place, so the filters stay usable.
- */
-function isDisplayable(error: unknown): error is ApiError {
-  return (
-    error instanceof ApiError &&
-    (Boolean(error.reason) ||
-      error.statusCode === 400 ||
-      error.statusCode === 404)
-  )
-}
-
-function ReportError({ error }: { error: ApiError }) {
-  const message = !error.reason
-    ? "This report can't be shown with the current filters."
-    : error.reason === "NOT_CONFIGURED"
-      ? "This organization's Autocount database hasn't been set up yet. Add its connection details in Settings > AutoCount Database."
-      : "This organization's Autocount database isn't reachable right now. Please try again later."
-
-  return (
-    <Card>
-      <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
-        <p className="font-medium">{message}</p>
-        <p className="text-sm text-muted-foreground">{error.message}</p>
-      </CardContent>
-    </Card>
-  )
-}
+import { getStatementFilterOptions, NO_FILTER_OPTIONS } from "@/lib/statement"
 
 async function loadReport(orgId: number, params: ProfitLossParams) {
   try {
@@ -67,18 +32,14 @@ async function loadReport(orgId: number, params: ProfitLossParams) {
     ])
     return { data, trend, breakdown, error: null }
   } catch (error) {
-    if (isDisplayable(error)) return { error }
+    if (isDisplayableError(error)) return { error }
     throw error
   }
 }
 
-async function loadFilterOptions(orgId: number) {
-  try {
-    return await getProfitLossFilterOptions(orgId)
-  } catch (error) {
-    if (isDisplayable(error)) return NO_OPTIONS
-    throw error
-  }
+function fallBackToNoOptions(error: unknown) {
+  if (isDisplayableError(error)) return NO_FILTER_OPTIONS
+  throw error
 }
 
 function lastMonthWithData(year: number): number {
@@ -99,7 +60,7 @@ export default async function ProfitLossPage({
 
   const [report, options] = await Promise.all([
     loadReport(orgId, reportParams),
-    loadFilterOptions(orgId),
+    getStatementFilterOptions(orgId).catch(fallBackToNoOptions),
   ])
 
   return (

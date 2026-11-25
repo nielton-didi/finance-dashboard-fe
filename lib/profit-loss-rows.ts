@@ -1,9 +1,9 @@
 import type {
-  ProfitLossAccType,
   ProfitLossSection,
   ProfitLossStatement,
   ProfitLossSummaryRow,
 } from "@/lib/profit-loss"
+import { ZERO, type ItemRow, type StatementBlock } from "@/lib/statement-rows"
 
 type SectionKey = {
   [
@@ -16,36 +16,6 @@ type SummaryKey = {
     K in keyof ProfitLossStatement
   ]: ProfitLossStatement[K] extends ProfitLossSummaryRow ? K : never
 }[keyof ProfitLossStatement]
-
-export interface Cell {
-  amount: number
-  percent: number
-}
-
-interface RowBase {
-  id: string
-  label: string
-  /** One cell per statement, in the order the statements were given. */
-  cells: Cell[]
-  /** Whether an increase is good news; drives variance colouring. */
-  higherIsBetter: boolean
-}
-
-export interface ItemRow extends RowBase {
-  accountCode: string
-  canDrillDown: boolean
-}
-
-export type StatementBlock =
-  | {
-      kind: "section"
-      id: SectionKey
-      title: string
-      accType: ProfitLossAccType
-      items: ItemRow[]
-      total: RowBase & { canDrillDown: boolean }
-    }
-  | { kind: "summary"; id: SummaryKey; row: RowBase; emphasis: boolean }
 
 const LAYOUT: (
   { section: SectionKey; higherIsBetter: boolean } | { summary: SummaryKey }
@@ -61,8 +31,6 @@ const LAYOUT: (
   { section: "taxation", higherIsBetter: false },
   { summary: "netProfitAfterTax" },
 ]
-
-const ZERO: Cell = { amount: 0, percent: 0 }
 
 export function hasTaxation(statements: ProfitLossStatement[]): boolean {
   return statements.some((s) => s.taxation.items.some((i) => i.amount !== 0))
@@ -113,11 +81,12 @@ export function buildStatementBlocks(
         title: sections[0].title,
         accType: sections[0].accType,
         items,
+        canDrillDown: true,
+        hideWhenEmpty: false,
         total: {
           id: `${key}-total`,
           label: `Total ${sections[0].title}`,
           higherIsBetter,
-          canDrillDown: true,
           cells: sections.map((s) => ({ amount: s.total, percent: s.percent })),
         },
       },
@@ -148,35 +117,5 @@ function buildItems(
       if (item.hasStockValue) row.canDrillDown = false
     }
   })
-  return [...byCode.values()].sort((a, b) =>
-    a.accountCode.localeCompare(b.accountCode)
-  )
-}
-
-export function isZeroRow(row: { cells: Cell[] }): boolean {
-  return row.cells.every((cell) => cell.amount === 0)
-}
-
-export interface Variance {
-  amount: number
-  percent: number | null
-  tone: "good" | "bad" | "neutral"
-}
-
-export function getVariance(row: RowBase): Variance {
-  const [current, comparison] = row.cells
-  const amount = Math.round((current.amount - comparison.amount) * 100) / 100
-  return {
-    amount,
-    percent:
-      comparison.amount === 0
-        ? null
-        : (amount / Math.abs(comparison.amount)) * 100,
-    tone:
-      amount === 0
-        ? "neutral"
-        : amount > 0 === row.higherIsBetter
-          ? "good"
-          : "bad",
-  }
+  return [...byCode.values()].sort((a, b) => a.id.localeCompare(b.id))
 }

@@ -3,7 +3,7 @@
 import * as React from "react"
 
 import type { ProfitLossTrend } from "@/lib/profit-loss"
-import { formatAmount, formatCompact } from "@/lib/profit-loss-format"
+import { formatAmount, formatCompact } from "@/lib/statement-format"
 import { cn } from "@/lib/utils"
 
 const MONTHS = [

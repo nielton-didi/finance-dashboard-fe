@@ -1,4 +1,4 @@
-import { formatAmount } from "@/lib/profit-loss-format"
+import { formatAmount } from "@/lib/statement-format"
 
 export interface BarListItem {
   key: string

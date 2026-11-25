@@ -1,5 +1,6 @@
 import {
   LayoutDashboardIcon,
+  ScaleIcon,
   SettingsIcon,
   TrendingUpDownIcon,
   type LucideIcon,
@@ -41,6 +42,11 @@ export const navGroups: NavGroup[] = [
         title: "Profit & Loss Statement",
         url: "profit-loss",
         icon: TrendingUpDownIcon,
+      },
+      {
+        title: "Balance Sheet",
+        url: "balance-sheet",
+        icon: ScaleIcon,
       },
       {
         title: "Settings",

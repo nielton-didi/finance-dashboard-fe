@@ -127,6 +127,8 @@ Base URL: `http://localhost:3001` locally (`PORT` env var). All routes except
 | GET | `/organizations/:orgId/profit-loss/trend?year` | same | monthly net sales, year vs prior year |
 | GET | `/organizations/:orgId/profit-loss/transactions` | same | range + exactly one of `accountNo` / `accType`; latest 1,000 GL lines, totals cover all |
 | GET | `/organizations/:orgId/profit-loss/filters` | same | projects, departments and budgets from AutoCount |
+| GET | `/organizations/:orgId/balance-sheet?asOfDate` | org-scoped + report:view | optional `compareTo=none\|prior_year`, `projectNo`, `deptNo`. Includes `outOfBalance` (0 when it balances) and `notes` |
+| GET | `/organizations/:orgId/balance-sheet/transactions?asOfDate&accountNo` | same | a control account includes its debtors/creditors; totals include the opening balance |
 | GET | `/health?orgId=` | public | app DB status always; Autocount status only if `orgId` passed |
 
 **Error shape for Autocount connection failures** (from `profit-loss`, `test-connection`):

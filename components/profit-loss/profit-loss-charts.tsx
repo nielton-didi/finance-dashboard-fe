@@ -1,4 +1,4 @@
-import { BarList, type BarListItem } from "@/components/profit-loss/bar-list"
+import { BarList, type BarListItem } from "@/components/statement/bar-list"
 import { NetSalesTrendChart } from "@/components/profit-loss/net-sales-trend-chart"
 import {
   Card,

@@ -1,14 +1,18 @@
 import {
   endOfMonth,
   endOfYear,
-  format,
-  isValid,
-  parseISO,
   startOfMonth,
   startOfYear,
   subMonths,
   subYears,
 } from "date-fns"
+
+import {
+  isoDate,
+  parseDateParam,
+  single,
+  type RawSearchParams,
+} from "@/lib/report-params"
 
 export type ProfitLossView = "period" | "monthly" | "quarterly"
 export type ProfitLossCompareTo = "none" | "prior_year" | "budget"
@@ -23,29 +27,13 @@ export interface ProfitLossParams {
   deptNo?: string
 }
 
-type RawSearchParams = Record<string, string | string[] | undefined>
-
 const VIEWS: ProfitLossView[] = ["period", "monthly", "quarterly"]
-
-function isoDate(date: Date): string {
-  return format(date, "yyyy-MM-dd")
-}
-
-function single(value: string | string[] | undefined): string | undefined {
-  return typeof value === "string" && value !== "" ? value : undefined
-}
-
-function parseDateParam(value: string | undefined): string | undefined {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined
-  return isValid(parseISO(value)) ? value : undefined
-}
 
 /** Reads the report's URL state, falling back to month-to-date vs prior year. */
 export function parseProfitLossParams(raw: RawSearchParams): ProfitLossParams {
   const today = new Date()
-  let fromDate =
-    parseDateParam(single(raw.fromDate)) ?? isoDate(startOfMonth(today))
-  let toDate = parseDateParam(single(raw.toDate)) ?? isoDate(today)
+  let fromDate = parseDateParam(raw.fromDate) ?? isoDate(startOfMonth(today))
+  let toDate = parseDateParam(raw.toDate) ?? isoDate(today)
   if (fromDate > toDate) [fromDate, toDate] = [toDate, fromDate]
 
   const view = VIEWS.find((v) => v === single(raw.view)) ?? "period"
@@ -123,9 +111,4 @@ export function matchPreset(
       return range.fromDate === fromDate && range.toDate === toDate
     }) ?? "custom"
   )
-}
-
-export function formatRange(fromDate: string, toDate: string): string {
-  const label = (date: string) => format(parseISO(date), "MMM d, yyyy")
-  return `${label(fromDate)} – ${label(toDate)}`
 }

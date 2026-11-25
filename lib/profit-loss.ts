@@ -1,5 +1,6 @@
 import { apiFetch } from "@/lib/api"
 import type { ProfitLossParams } from "@/lib/profit-loss-params"
+import { statementPath, type StatementTransactions } from "@/lib/statement"
 
 export type ProfitLossAccType = "SL" | "SA" | "CO" | "OI" | "EP" | "TX"
 
@@ -68,34 +69,6 @@ export interface ProfitLossTrend {
   months: { month: number; current: number; prior: number }[]
 }
 
-export interface ProfitLossTransaction {
-  key: string
-  date: string
-  accountCode: string
-  accountName: string
-  description: string | null
-  reference: string | null
-  journalType: string
-  projectNo: string | null
-  deptNo: string | null
-  debit: number
-  credit: number
-}
-
-export interface ProfitLossTransactions {
-  rows: ProfitLossTransaction[]
-  totalCount: number
-  totalDebit: number
-  totalCredit: number
-  truncated: boolean
-}
-
-export interface ProfitLossFilterOptions {
-  projects: { code: string; name: string }[]
-  departments: { code: string; name: string }[]
-  budgets: { key: string; name: string }[]
-}
-
 export interface ProfitLossTransactionsQuery {
   fromDate: string
   toDate: string
@@ -103,19 +76,6 @@ export interface ProfitLossTransactionsQuery {
   deptNo?: string
   accountNo?: string
   accType?: ProfitLossAccType
-}
-
-function buildPath(
-  orgId: number,
-  path: string,
-  query: Record<string, string | number | undefined> = {}
-): string {
-  const params = new URLSearchParams()
-  for (const [key, value] of Object.entries(query)) {
-    if (value !== undefined && value !== "") params.set(key, String(value))
-  }
-  const qs = params.toString()
-  return `/organizations/${orgId}/profit-loss${path}${qs ? `?${qs}` : ""}`
 }
 
 function dimensions({ projectNo, deptNo }: ProfitLossParams) {
@@ -128,7 +88,7 @@ export async function getProfitLoss(
 ): Promise<ProfitLossReportData> {
   const { fromDate, toDate, compareTo, budgetKey } = params
   return apiFetch(
-    buildPath(orgId, "", {
+    statementPath(orgId, "profit-loss", {
       fromDate,
       toDate,
       compareTo,
@@ -145,7 +105,7 @@ export async function getProfitLossBreakdown(
 ): Promise<ProfitLossBreakdown> {
   const { fromDate, toDate } = params
   return apiFetch(
-    buildPath(orgId, "/breakdown", {
+    statementPath(orgId, "profit-loss/breakdown", {
       fromDate,
       toDate,
       interval,
@@ -159,22 +119,18 @@ export async function getProfitLossTrend(
   params: ProfitLossParams
 ): Promise<ProfitLossTrend> {
   return apiFetch(
-    buildPath(orgId, "/trend", {
+    statementPath(orgId, "profit-loss/trend", {
       year: Number(params.toDate.slice(0, 4)),
       ...dimensions(params),
     })
   )
 }
 
-export async function getProfitLossFilterOptions(
-  orgId: number
-): Promise<ProfitLossFilterOptions> {
-  return apiFetch(buildPath(orgId, "/filters"))
-}
-
 export async function getProfitLossTransactions(
   orgId: number,
   query: ProfitLossTransactionsQuery
-): Promise<ProfitLossTransactions> {
-  return apiFetch(buildPath(orgId, "/transactions", { ...query }))
+): Promise<StatementTransactions> {
+  return apiFetch(
+    statementPath(orgId, "profit-loss/transactions", { ...query })
+  )
 }
