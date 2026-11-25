@@ -87,6 +87,10 @@ Use a recent Node.js: version 24.11 or newer, 22.13 or newer in version 22, or 2
 
 If your AutoCount computer already has SQL Server, you can use that one and skip installing SQL Server Express.
 
+### Outside services
+
+None. The project needs no third-party accounts, subscriptions or API keys. It only connects to your own SQL Servers.
+
 ### Information to collect
 
 - [ ] Access to the two repositories. If you cannot open the links, send your GitHub username to the developer and ask for access.
@@ -136,7 +140,11 @@ git clone https://github.com/nielton-didi/finance-dashboard-be.git finance-dashb
 git clone https://github.com/nielton-didi/finance-dashboard-fe.git finance-dashboard-fe
 ```
 
-Git may ask you to sign in to GitHub. When it finishes, you should have:
+Git may ask you to sign in to GitHub.
+
+**If you received ZIP files instead:** create the `finance-dashboard` folder, extract both ZIP files into it, and rename the extracted folders to `finance-dashboard-be` and `finance-dashboard-fe`. Everything else in this guide is the same, except that `git pull` in section 13 will not work; ask for a new ZIP instead.
+
+When you finish, you should have:
 
 ```
 finance-dashboard
@@ -505,9 +513,18 @@ Amounts are in the company's home currency and shown as RM.
 
 ## 11. Checks to make before relying on the figures
 
-The reports were tested against an AutoCount test database and made-up sample data. They agree with each other, but some situations could only be assumed. **Before using the figures for decisions, compare these with AutoCount's own reports, for at least one company:**
+What has been checked so far:
 
-- [ ] **Profit & Loss** for one full month and one full year.
+| Report | Checked |
+|---|---|
+| Profit & Loss (before 25 November 2026) | Compared with AutoCount's figures by the development team, on AutoCount's sample company. Those figures are unchanged after the later changes |
+| Taxation, budgets, stock, project and department filters | Tested with made-up data only, because the sample company has none |
+| Balance Sheet, Cash Flow, Dashboard, group screens | Agree with each other and with the Profit & Loss, but not yet compared with AutoCount's own reports |
+| Your company's data | Not yet connected or checked |
+
+**Before using the figures for decisions, compare these with AutoCount's own reports, for at least one company:**
+
+- [ ] **Profit & Loss** for one full month and one full year, including tax and budget.
 - [ ] **Balance Sheet** at your last year end.
 - [ ] **Stock:** gross profit in a month with stock values, and the **first month stock was ever recorded**. In that first month the whole stock value appears as profit, because there is no earlier value to compare it with.
 - [ ] **Budget:** amounts should have the right sign (the project assumes budgets are entered as positive numbers).
@@ -599,14 +616,196 @@ When asking for help, send the exact error text, what you were doing, and a scre
 
 ## 15. Putting it online for other people
 
-The steps above are for **one computer**. To let colleagues use it, ask an IT person or developer to host it. This is what they need to know:
+The steps above are for **one computer**. This section is for putting the project on a server so colleagues can use it. The project has not been deployed anywhere yet.
 
-- **HTTPS is required.** In production mode the login cookie only works on a secure (`https`) address, or on `localhost`. Put a web server such as IIS, Nginx or Caddy with a certificate in front of the frontend.
-- **Only the frontend should be public.** It talks to the backend itself. Keep the backend and both databases on a private network.
-- **Settings:** set the frontend's `BACKEND_API_URL` to the backend's private address, and the backend's `CORS_ORIGIN` to the website address.
-- **Reaching AutoCount:** the backend must reach each AutoCount computer. Use a VPN or private network. **Never open SQL Server to the internet**, as the connection to it is not encrypted.
-- **Keep it running:** use a service manager such as PM2, or run it as a Windows service, so it restarts after a reboot.
-- **Before opening it to the internet,** add the security items in section 17 (login attempt limits, password reset).
+Please ask an IT person or developer to do this part.
+
+### 15.1 What you need
+
+| Item | Notes |
+|---|---|
+| A server that is always on | Windows Server or Ubuntu Linux, 2 CPU cores and 4 GB memory to start with (a suggestion, not a measured requirement) |
+| Access to every AutoCount database | Easiest when the server is on the same office network. Otherwise use a VPN. **Never open SQL Server to the internet**, because the connection to it is not encrypted |
+| Internet access while installing and building | For downloading parts and fonts |
+| A web address with HTTPS | **Required.** Login only works over `https` (or on `localhost`). For internet use, a domain such as `dashboard.yourcompany.com` pointing to the server |
+| SQL Server | On the same server, or on the private network |
+
+How it fits together:
+
+```
+Browsers --https--> Caddy (443) --> Frontend (127.0.0.1:3000) --> Backend (3001) --> databases
+```
+
+Only port 443 (and 80, used to obtain the certificate) should be reachable by users. Ports 3000, 3001 and 1433 must not be.
+
+### 15.2 Prepare (Windows and Linux)
+
+1. Install Node.js 24 and Git, and SQL Server if it will run here.
+2. Create the database and its login (section 4.2).
+3. Clone both parts into one folder: `C:\finance-dashboard` on Windows, or `/opt/finance-dashboard` on Linux.
+4. In `finance-dashboard-be`, run `npm ci`, then create and fill in `.env` as in section 5, with **new keys made on this server** and:
+
+   ```ini
+   CORS_ORIGIN=https://dashboard.yourcompany.com
+   PORT=3001
+   ```
+
+5. Still in `finance-dashboard-be`:
+
+   ```bash
+   npm run migration:run
+   npm run bootstrap:admin
+   npm run build
+   ```
+
+   Then delete the three `ADMIN_` lines from `.env`.
+
+6. In `finance-dashboard-fe`, create `.env.local` containing `BACKEND_API_URL=http://127.0.0.1:3001`, then:
+
+   ```bash
+   npm ci
+   npm run build
+   ```
+
+Use `npm ci` as shown. Do not skip the development packages (`--omit=dev`), because building and migrations need them.
+
+### 15.3 Keep it running: Linux
+
+Create a user to run it, and give it the files:
+
+```bash
+sudo useradd --system --shell /usr/sbin/nologin finance
+sudo chown -R finance:finance /opt/finance-dashboard
+sudo chmod 600 /opt/finance-dashboard/finance-dashboard-be/.env
+```
+
+Create `/etc/systemd/system/finance-backend.service`:
+
+```ini
+[Unit]
+Description=Finance Dashboard backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=finance
+WorkingDirectory=/opt/finance-dashboard/finance-dashboard-be
+ExecStart=/usr/bin/node dist/main
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Create `/etc/systemd/system/finance-frontend.service`:
+
+```ini
+[Unit]
+Description=Finance Dashboard frontend
+After=network-online.target finance-backend.service
+Wants=network-online.target
+
+[Service]
+User=finance
+WorkingDirectory=/opt/finance-dashboard/finance-dashboard-fe
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Check that `which node` shows `/usr/bin/node`; if not, use the path it shows. Then start both:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now finance-backend finance-frontend
+sudo systemctl status finance-backend finance-frontend
+```
+
+Allow only SSH and web traffic. Allow SSH first, or you may lock yourself out:
+
+```bash
+sudo ufw allow OpenSSH
+sudo ufw allow 80,443/tcp
+sudo ufw enable
+```
+
+Logs: `journalctl -u finance-backend -f`
+
+### 15.4 Keep it running: Windows Server
+
+Install [NSSM](https://nssm.cc/download), which runs programs as Windows services. In Command Prompt **as administrator**:
+
+```bat
+nssm install FinanceBackend "C:\Program Files\nodejs\node.exe" dist\main
+nssm set FinanceBackend AppDirectory C:\finance-dashboard\finance-dashboard-be
+nssm set FinanceBackend AppStdout C:\finance-dashboard\backend.log
+nssm set FinanceBackend AppStderr C:\finance-dashboard\backend.log
+
+nssm install FinanceFrontend "C:\Program Files\nodejs\node.exe" node_modules\next\dist\bin\next start -H 127.0.0.1 -p 3000
+nssm set FinanceFrontend AppDirectory C:\finance-dashboard\finance-dashboard-fe
+nssm set FinanceFrontend AppStdout C:\finance-dashboard\frontend.log
+nssm set FinanceFrontend AppStderr C:\finance-dashboard\frontend.log
+
+nssm start FinanceBackend
+nssm start FinanceFrontend
+```
+
+Block the backend from other computers, and allow web traffic:
+
+```bat
+netsh advfirewall firewall add rule name="Block finance backend" dir=in action=block protocol=TCP localport=3001
+netsh advfirewall firewall add rule name="Finance web" dir=in action=allow protocol=TCP localport=80,443
+```
+
+### 15.5 Add HTTPS
+
+Install [Caddy](https://caddyserver.com/docs/install) and put this in its `Caddyfile`, with your own address:
+
+```
+dashboard.yourcompany.com {
+	encode gzip
+	reverse_proxy 127.0.0.1:3000
+}
+```
+
+- **On the internet:** point the domain to the server and make ports 80 and 443 reachable. Caddy gets and renews the certificate by itself.
+- **Office network only:** add a line `tls internal` inside the braces, and install Caddy's root certificate on each computer, or use a certificate from your company.
+
+On Linux, the file is `/etc/caddy/Caddyfile`; apply it with `sudo systemctl reload caddy`. On Windows, run Caddy as a service with NSSM in the same way.
+
+### 15.6 Check it
+
+- [ ] The `https` address opens the login page with no security warning, and you can log in.
+- [ ] **Test Connection** works for each organization, using the **read-only** login.
+- [ ] Reports open, and an export downloads.
+- [ ] A staff user sees only their own organizations.
+- [ ] From another computer, `http://SERVER-ADDRESS:3001/health` and port 1433 do **not** open.
+- [ ] After restarting the server, the website comes back by itself.
+- [ ] A database backup is scheduled, and restoring it has been tried once.
+
+### 15.7 Updating and going back
+
+Before updating, note the current version of each part with `git rev-parse HEAD`, and back up the database. Then follow section 13, using `npm ci` instead of `npm install`, and restarting the services instead of running the start commands:
+
+| | Linux | Windows |
+|---|---|---|
+| Restart | `sudo systemctl restart finance-backend finance-frontend` | `nssm restart FinanceBackend` and `nssm restart FinanceFrontend` |
+
+On Linux, run the commands as the `finance` user, or run the `chown` line in 15.3 again afterwards.
+
+To go back: in each part, run `git checkout` with the version you noted, then `npm ci` and `npm run build`, and restart. If the update changed the database, restore the backup you made before it.
+
+### 15.8 Before opening it to the internet
+
+Add the login limit and the other security items under "Recommended first" in section 17.
+
+### 15.9 Handing over a live system
+
+Keep a private list, outside the code, of who holds each login: server, domain, SQL Server administrator, `finance_dashboard_app`, each `dashboard_reader`, the app's administrators, and the two keys. Change them when responsibility changes hands.
 
 ---
 
@@ -619,6 +818,8 @@ The steps above are for **one computer**. To let colleagues use it, ask an IT pe
 | No invitation emails | Admins share passwords themselves |
 | No limit on wrong login attempts | Add before opening to the internet |
 | Blocking a user takes effect when their login expires | Up to one day |
+| A changed name or role shows after the next login | The old one is kept until then |
+| The status page `/health?orgId=` shows connection error details without login | Keep the backend private (section 15) |
 | No EBITDA and no grouped expenses | Needs account mapping, see section 17 |
 | Group totals do not remove transactions between companies | Totals can be higher than true consolidated figures |
 | Currency is always shown as RM | Companies in other currencies show the wrong label, and group totals are not converted |
@@ -642,6 +843,7 @@ Sizes are rough: **Small** is a few focused changes, **Medium** is a feature, **
 | Admin password reset, and a forgotten-password email | Avoids deleting and re-adding users | Medium | Yes, for the email link |
 | Limit login attempts | Security before going online | Small | No |
 | Block users immediately | Closes the one-day gap | Small | No |
+| Hide error details on the status page | Security | Small | No |
 | Fix the first stock month | See section 11; confirm with AutoCount first | Small | No |
 
 ### Reports
@@ -899,7 +1101,7 @@ Useful facts:
 
 ### API
 
-The endpoint list is under **Full API reference** in [BACKEND_INTEGRATION.md](./BACKEND_INTEGRATION.md). The rest of that file is an earlier planning note and is partly out of date; where it differs from this guide or the code, follow this guide and the code.
+Diagrams, processes, calculation rules, design decisions and security details are in [ARCHITECTURE.md](./ARCHITECTURE.md). The endpoint list is under **Full API reference** in [BACKEND_INTEGRATION.md](./BACKEND_INTEGRATION.md). The rest of that file is an earlier planning note and is partly out of date; where it differs from this guide or the code, follow this guide and the code.
 
 ---
 
@@ -929,7 +1131,7 @@ The endpoint list is under **Full API reference** in [BACKEND_INTEGRATION.md](./
 **From the developer**
 
 - [ ] The latest version of **both** parts is on the `main` branch
-- [ ] Repository access or ownership has been given
+- [ ] Both repositories have been transferred, or ZIP copies given
 - [ ] A walkthrough of the app has been done
 
 **From the client**
